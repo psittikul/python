@@ -1,0 +1,14 @@
+Orio Email Automation Notes
+4.25.2017
+
+1) Download PDF of latest Sales Update from Rick, saving it in Rewards and Shipments folder
+2) Export PDF to Excel Worksheet (.xlsx)
+3) Run Python script that will save the pertinent data into a dictionary with the OSC Code as the key
+4) Open the "Mail Merge [date]" Excel file
+5) Copy all the dictionary values into the corresponding columns in the worksheet, using the correct format
+6) Using either the "Contacts" sheet in the Mail Merge file or a contact spreadsheet somehow uploaded to the Python program,
+	store the OSC's contact data in a dictionary with the OSC code as key again
+7) Going through each OSC, copy over General Manager, Service Manager, and Parts Manager emails, but only if they're valid and not duplicates.
+	If there's only one email for the entire OSC (if this is the protocol we should follow) at least copy that email over
+8) This "Mail Merge" sheet should now have OSC code, name, reward, goal, Aero level, purchases to date, % of goal, purchases to go listed with the
+	name and email of each existing, pertinent contact at the OSC.
