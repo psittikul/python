@@ -51,7 +51,6 @@ class Example(QWidget):
             # if the file doesn't exist yet, create a new mail merge file
             merge_wb = openpyxl.Workbook()
             merge_sheet = merge_wb.active
-            merge_wb.save('MailMerge.xlsx')
             print("Adding column headers")
             merge_sheet['A1'] = "OSC Code"
             print(merge_sheet['A1'].value)
@@ -66,7 +65,7 @@ class Example(QWidget):
             merge_sheet['J1'] = "Purchases to Go"
             merge_sheet['K1'] = "Reward"
             print("All headers added")
-            merge_wb.save
+            merge_wb.save('MailMerge.xlsx')
             
 ##        # Check that the columns are lined up correctly
 ##        confirm = QMessageBox()
@@ -138,8 +137,9 @@ class Example(QWidget):
                 merge_sheet.cell(row = mergeRow, column = 9).value = percent
                 merge_sheet.cell(row = mergeRow, column = 10).value = PTG
                 merge_sheet.cell(row = mergeRow, column = 11).value = reward
+                print(merge_sheet.cell(row = mergeRow, column = 1).value)
                 # Now that we've copied the information to this row, get the next merge row ready and reactivate the objectives workbook and worksheet
-                merge_wb.save
+                merge_wb.save("MailMerge.xlsx")
                 mergeRow = mergeRow + 1
                 sheet = data_wb.active
             else:
