@@ -46,14 +46,12 @@ class Example(QWidget):
             print("Opening existing Mail Merge workbook")
             merge_wb = openpyxl.load_workbook('MailMerge.xlsx')
             merge_sheet = merge_wb.active
-            print(merge_sheet.cell(row = 1, column = 1).value)
         else:
             # if the file doesn't exist yet, create a new mail merge file
             merge_wb = openpyxl.Workbook()
             merge_sheet = merge_wb.active
             print("Adding column headers")
             merge_sheet['A1'] = "OSC Code"
-            print(merge_sheet['A1'].value)
             merge_sheet['B1'] = "DBA"
             merge_sheet['C1'] = "Contact First Name"
             merge_sheet['D1'] = "Contact Last Name"
@@ -119,7 +117,7 @@ class Example(QWidget):
                 PTD = "$"+str(PTDCell.value)
                 # % of objective will be 1 cell to the right of PTD
                 percentCell = sheet.cell(row = row, column = percentColumn)
-                percent = str(percentCell.value)
+                percent = percentCell.value
                 # Purchases to go will be 3 cells to the right of % of objective
                 PTGCell = sheet.cell(row = row, column = PTGColumn)
                 PTG = "$" + str(PTGCell.value)
@@ -127,9 +125,7 @@ class Example(QWidget):
                 # Now that you've gotten the information, copy it over to Mail Merge
                 merge_sheet = merge_wb.active
                 # Go through all the info columns in Mail Merge and copy over the values
-                print(merge_sheet)
                 merge_sheet.cell(row = mergeRow, column = 1).value = code
-                print(merge_sheet.cell(row = mergeRow, column = 1).value)
                 merge_sheet.cell(row = mergeRow, column = 2).value = DBA
                 merge_sheet.cell(row = mergeRow, column = 6).value = aeroStatus
                 merge_sheet.cell(row = mergeRow, column = 7).value = objective
@@ -137,14 +133,14 @@ class Example(QWidget):
                 merge_sheet.cell(row = mergeRow, column = 9).value = percent
                 merge_sheet.cell(row = mergeRow, column = 10).value = PTG
                 merge_sheet.cell(row = mergeRow, column = 11).value = reward
-                print(merge_sheet.cell(row = mergeRow, column = 1).value)
                 # Now that we've copied the information to this row, get the next merge row ready and reactivate the objectives workbook and worksheet
                 merge_wb.save("MailMerge.xlsx")
                 mergeRow = mergeRow + 1
                 sheet = data_wb.active
             else:
                 continue
-            merge_wb.save
+            merge_sheet = merge_wb.active
+            merge_wb.save("MailMerge.xlsx")
     def __init__(self):
         super().__init__()
         
