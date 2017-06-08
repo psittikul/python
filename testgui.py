@@ -1,15 +1,18 @@
 import sys
+import os
+import errno
 import tkinter
 import openpyxl
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton
-from PyQt5.QtGui import QIcon
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 from flask import Flask, render_template, request
 from werkzeug import secure_filename
 from tkinter import Tk
 from tkinter import filedialog
 from tkinter.filedialog import askopenfilename
 from collections import defaultdict
-UPLOAD_FOLDER = 'C:/Users/Bridget Velez/'
+UPLOAD_FOLDER = os.getcwd()
 ALLOWED_EXTENSIONS = set({'xls', 'xlsx'})
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -17,84 +20,131 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 class Example(QWidget):
     
-    #Function to prompt user to upload the file with the updated objectives, and then collect and store the relevant data in an array, which will later be prepped to mail merge.
+    # --- Function to prompt user to upload the file with the updated objectives, and then collect and store the relevant data in an array, which will later be prepped to mail merge. ---
+    # !! Add code in to make sure it's an accepted file type later
+##    def allowed_file(filename):
+##        return '.' in filename and \
+##               filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
+
     def getFile(self):
         print("Getting file")
         Tk().withdraw()
         filename = askopenfilename()
+        print(filename)
+        # Only continue if an "ONA - Sales by Channel Assignment..." file is being uploaded. If not, prompt again.
+        print("Uploading to "+ str(UPLOAD_FOLDER)) 
         data_wb = openpyxl.load_workbook(filename)
-
-        #Go to the correct worksheet
+        print("Opening this uploaded file")
+        # Go to the correct worksheet
         sheet = data_wb.active
-        objectives_update = {}
-        code_list = []
-
-        #Cycle through each row. If the row is an OSC, gather this data to later be stored in the array "objectives_update"
+        print(sheet)
+        # Before we go through the objectives file, create a Mail Merge workbook if it doesn't already exist, and just open it to update if it does
+        print("Checking if Mail Merge workbook exists or not")
+        mergeFilePath = str(os.getcwd() + "\MailMerge.xlsx")
+        print(mergeFilePath)
+        if os.path.exists(mergeFilePath):
+            print("Opening existing Mail Merge workbook")
+            merge_wb = openpyxl.load_workbook('MailMerge.xlsx')
+            merge_sheet = merge_wb.active
+            print(merge_sheet.cell(row = 1, column = 1).value)
+        else:
+            # if the file doesn't exist yet, create a new mail merge file
+            merge_wb = openpyxl.Workbook()
+            merge_sheet = merge_wb.active
+            merge_wb.save('MailMerge.xlsx')
+            print("Adding column headers")
+            merge_sheet['A1'] = "OSC Code"
+            print(merge_sheet['A1'].value)
+            merge_sheet['B1'] = "DBA"
+            merge_sheet['C1'] = "Contact First Name"
+            merge_sheet['D1'] = "Contact Last Name"
+            merge_sheet['E1'] = "Contact Email"
+            merge_sheet['F1'] = "Aero Status"
+            merge_sheet['G1'] = "Objective"
+            merge_sheet['H1'] = "MTD"
+            merge_sheet['I1'] = "% of Goal"
+            merge_sheet['J1'] = "Purchases to Go"
+            merge_sheet['K1'] = "Reward"
+            print("All headers added")
+            merge_wb.save
+            
+##        # Check that the columns are lined up correctly
+##        confirm = QMessageBox()
+##        confirm.setIcon(QMessageBox.Question)
+##        confirm.SetText("Are the columns matched up correctly?")
+##        confirm.setWindowTitle("Confirm Merge Fields")
+##        confirm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+##        QMessageBox.Yes.buttonClicked 
+        
+        # Reactivate the objectives update workbook
+        print("Reactivating objectives workbook now")
+        sheet = data_wb.active
+        # Cycle through each row. If the row is an OSC, gather this data to later be stored in the array "objectives_update"
         print ("Entering for loop to gather data")
-        for row in range(25, 422):
-            print(sheet['A' + str(row)].value)
-            if str(sheet['B' + str(row)].value) == "OSC":
-                print("This is an OSC")
-                code = str(sheet['A' + str(row)].value)
-                #Somehow this variable will have to accommodate the changing columns with Aero status changes between quarters
-                status = str(sheet['G' + str(row)].value)
-                if status != "#N/A" and not "-" in status and not "-" in code:
-                    reward = int(sheet['H' + str(row)].value)
-                    DBA = str(sheet['J' + str(row)].value)
-                    objective = int(sheet['L' + str(row)].value)
-                    MTD = int(sheet['M' + str(row)].value)
-                    percent = int(sheet['N' + str(row)].value)
-                    purchasesToGo = int(sheet['Q' + str(row)].value)
-                    
-                    #Store our values in our dictionary now
-                    code_list.append(code)
-                    data = [code, status, reward, DBA, objective, MTD, percent, purchasesToGo]
-                    objectives_update[code] = data
-                    
-                else:
-                    continue
-
+        # We'll start populating the mail merge worksheet at row 2
+        mergeRow = 2
+        # Search for the cell headers and take note of the column index
+        for column in range(1, sheet.max_column + 1):
+            if sheet.cell(row = 24, column = column).value == "Rwd.":
+                rewardColumn = column
+                break
             else:
                 continue
-        print("Ended for loop")
-        print("Writing results")
-        print(len(objectives_update))
-        merge_wb = openpyxl.Workbook()
-        merge_sheet = merge_wb.active
-        #This would create a new MailMerge.xlsx file everytime...is there a way we can just update it?
-        merge_sheet.title = "Mail Merge"
-        merge_wb.save('MailMerge.xlsx')
-        print("Adding column headers")
-        merge_sheet['A1'].value = "OSC Code"
-        merge_sheet['B1'].value = "OSC Name"
-        merge_sheet['C1'].value = "Contact First Name"
-        merge_sheet['D1'].value = "Contact Last Name"
-        merge_sheet['E1'].value = "Contact Email"
-        merge_sheet['F1'].value = "Aero Status"
-        merge_sheet['G1'].value = "Objective"
-        merge_sheet['H1'].value = "MTD"
-        merge_sheet['I1'].value = "% of Goal"
-        merge_sheet['J1'].value = "Purchases to Go"
-        merge_sheet['K1'].value = "Reward"
-        merge_wb.save('MailMerge.xlsx')
-        pop_row = 2
-        print(len(code_list))
-        for i in range(0, len(code_list)):
-            current_code = str(code_list.pop(i))
-            print(current_code)
-            print(str(objectives_update[current_code][0]))
-            merge_sheet['A' + str(pop_row)].value = str(objectives_update[current_code][0])
-            merge_wb.save('MailMerge.xlsx')
-            merge_sheet['B' + str(i)].value = DBA
-            #merge_sheet['F' + str(i)].value = status
-            #merge_sheet['G' + str(i)].value = objective
-            #merge_sheet['H' + str(i)].value = MTD
-            #merge_sheet['I' + str(i)].value = percent
-            #merge_sheet['J' + str(i)].value = purchasesToGo
-            #merge_sheet['K' + str(i)].value = reward
-            pop_row += 1
-        
-        print("Finished copying over values")    
+        aeroColumn = rewardColumn - 1
+        DBAColumn = rewardColumn + 2
+        objectiveColumn = DBAColumn + 2
+        PTDColumn = objectiveColumn + 1
+        percentColumn = PTDColumn + 1
+        PTGColumn = percentColumn + 3
+            
+            # !!!!! At this point, prompt user to confirm that the fields are matched up (create little table in the message box maybe?)
+            # --------------------------------------------------------------------------------------------------------------------------
+            # Only pay attention to rows labeled "OSC" that have a valid reward amount
+        for row in range(23, sheet.max_row + 1):
+            if str(sheet.cell(row = row, column = 2).value) == "OSC" and type(sheet.cell(row = row, column = rewardColumn).value) == int:
+                code = str(sheet.cell(row = row, column = 1).value)
+                # Reward will be in the column labeled "Rwd."
+                rewardCell = sheet.cell(row = row, column = rewardColumn)
+                reward = "$" + str(rewardCell.value)
+                # Aero status will be one cell to the left of reward
+                aeroCell = sheet.cell(row = row, column = aeroColumn)
+                aeroStatus = str(aeroCell.value)
+                # DBA will be 2 cells to the right of reward
+                DBACell = sheet.cell(row = row, column = DBAColumn)
+                DBA = str(DBACell.value)
+                # Objective will be 2 cells to the right of DBA
+                objectiveCell = sheet.cell(row = row, column = objectiveColumn)
+                objective = "$" + str(objectiveCell.value)
+                # Purchases to date will be 1 cell to the right of objective
+                PTDCell = sheet.cell(row = row, column = PTDColumn)
+                PTD = "$"+str(PTDCell.value)
+                # % of objective will be 1 cell to the right of PTD
+                percentCell = sheet.cell(row = row, column = percentColumn)
+                percent = str(percentCell.value)
+                # Purchases to go will be 3 cells to the right of % of objective
+                PTGCell = sheet.cell(row = row, column = PTGColumn)
+                PTG = "$" + str(PTGCell.value)
+                print(code + " " + DBA + " " + aeroStatus + " " + objective + " " + reward)
+                # Now that you've gotten the information, copy it over to Mail Merge
+                merge_sheet = merge_wb.active
+                # Go through all the info columns in Mail Merge and copy over the values
+                print(merge_sheet)
+                merge_sheet.cell(row = mergeRow, column = 1).value = code
+                print(merge_sheet.cell(row = mergeRow, column = 1).value)
+                merge_sheet.cell(row = mergeRow, column = 2).value = DBA
+                merge_sheet.cell(row = mergeRow, column = 6).value = aeroStatus
+                merge_sheet.cell(row = mergeRow, column = 7).value = objective
+                merge_sheet.cell(row = mergeRow, column = 8).value = PTD
+                merge_sheet.cell(row = mergeRow, column = 9).value = percent
+                merge_sheet.cell(row = mergeRow, column = 10).value = PTG
+                merge_sheet.cell(row = mergeRow, column = 11).value = reward
+                # Now that we've copied the information to this row, get the next merge row ready and reactivate the objectives workbook and worksheet
+                merge_wb.save
+                mergeRow = mergeRow + 1
+                sheet = data_wb.active
+            else:
+                continue
+            merge_wb.save
     def __init__(self):
         super().__init__()
         
