@@ -4,7 +4,7 @@ import errno
 import tkinter
 import openpyxl
 from openpyxl.utils import get_column_letter
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox
+from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from flask import Flask, render_template, request
@@ -29,7 +29,8 @@ class Example(QWidget):
         
     
     def getFile(self):
-        
+
+        # Function to format the currency values with $ and comma separation
         def formatCurrency(amt):
             if len(amt) > 3:
                 hundreds = amt[len(amt)-3:len(amt)+1]
@@ -55,10 +56,39 @@ class Example(QWidget):
 ##                detailText = detailText + " " 
 ##            confirm.setDetailedText(detailText)
 ##            confirm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-##            QMessageBox.Yes.buttonClicked 
-        def confirmFields():
+##            QMessageBox.Yes.buttonClicked
+
+        # Function to confirm the fields are matched properly to merge    
+        def confirmFields(label_list):
             print("Confirm fields!")
-            msg = QMessageBox.question(self, "Are the fields matched up correctly?", "Test", QMessageBox.Yes | QMessageBox.No)
+            confirm = QMessageBox()
+            confirm.setIcon(QMessageBox.Question)
+            confirm.setText("Are the fields matched to the correct columns?")
+            confirm.setInformativeText("Click 'Show Details' to check the detected merge fields. If the pairings are not correct, you can manually enter the correct columns for each field.")
+            confirm.setDetailedText(label_list[0] + ": OSC Number \n"\
+                                    "-------------------------------- \n"\
+                                    "" + label_list[1] + ": Aero Status \n"\
+                                    "-------------------------------- \n"\
+                                    "" + label_list[2] + ": DBA \n"\
+                                    "-------------------------------- \n"\
+                                    "" + label_list[3] + ": Objective \n"\
+                                    "-------------------------------- \n"\
+                                    "" + label_list[4] + ": MTD \n"\
+                                    "-------------------------------- \n"\
+                                    "" + label_list[5] + ": % of Goal \n"\
+                                    "-------------------------------- \n"\
+                                    "" + label_list[6] + ": PurchasesToGo \n"\
+                                    "-------------------------------- \n"\
+                                    "" + label_list[7] + ": Reward")
+            confirm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            confirm.exec_()
+            if QMessageBox.No:
+##                layout = QFormLayout()
+##                self.btn = QPushButton("Choose column for field 'OSC Number': ")
+##                layout.add
+                correction, yes = QInputDialog.getText(self, "Manually Enter Fields to Merge", "Enter the correct column letter for the field:")
+            else:
+                print("Fields matched correctly")
             
         print("Getting file")
         Tk().withdraw()
@@ -84,7 +114,7 @@ class Example(QWidget):
             merge_wb = openpyxl.Workbook()
             merge_sheet = merge_wb.active
             print("Adding column headers")
-            merge_sheet['A1'] = "OSC Code"
+            merge_sheet['A1'] = "OSC Number"
             merge_sheet['B1'] = "DBA"
             merge_sheet['C1'] = "Contact First Name"
             merge_sheet['D1'] = "Contact Last Name"
@@ -93,7 +123,7 @@ class Example(QWidget):
             merge_sheet['G1'] = "Objective"
             merge_sheet['H1'] = "MTD"
             merge_sheet['I1'] = "% of Goal"
-            merge_sheet['J1'] = "Purchases to Go"
+            merge_sheet['J1'] = "PurchasesToGo"
             merge_sheet['K1'] = "Reward"
             print("All headers added")
             merge_wb.save('MailMerge.xlsx')
@@ -116,6 +146,7 @@ class Example(QWidget):
                     break
                 else:
                     continue
+        codeLabel = str(sheet.cell(row = labelRow, column = 1).value)
         aeroColumn = rewardColumn - 1
         aeroLabel = str(sheet.cell(row = labelRow, column = aeroColumn).value)
         DBAColumn = rewardColumn + 2
@@ -128,10 +159,9 @@ class Example(QWidget):
         percentLabel = str(sheet.cell(row = labelRow, column = percentColumn).value)
         PTGColumn = percentColumn + 3
         PTGLabel = str(sheet.cell(row = labelRow, column = PTGColumn).value)
-        columns = (aeroColumn, DBAColumn, objectiveColumn, PTDColumn, percentColumn, PTGColumn)
-        labels = (aeroLabel, DBALabel, objectiveLabel, PTDLabel, percentLabel, PTGLabel)
+        labels = (codeLabel, aeroLabel, DBALabel, objectiveLabel, PTDLabel, percentLabel, PTGLabel, rewardLabel)
 
-        confirmFields()
+        confirmFields(labels)
             # !!!!! At this point, prompt user to confirm that the fields are matched up (create little table in the message box maybe?)
             # --------------------------------------------------------------------------------------------------------------------------
             # Only pay attention to rows labeled "OSC" that have a valid reward amountf
@@ -212,7 +242,7 @@ class Example(QWidget):
         updateBtn = QPushButton('Upload file to update contact information', self)
         updateBtn.resize(updateBtn.sizeHint())
         updateBtn.move(350, 10)
-        self.setGeometry(300, 300, 800, 500)
+        self.setGeometry(100, 100, 800, 500)
         self.setWindowTitle('Orio Email Automation Program')
         self.setWindowIcon(QIcon('logo.png'))        
     
