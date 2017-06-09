@@ -9,6 +9,7 @@ from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from flask import Flask, render_template, request
 from werkzeug import secure_filename
+import tkinter as tk
 from tkinter import Tk
 from tkinter import filedialog
 from tkinter.filedialog import askopenfilename
@@ -18,7 +19,7 @@ ALLOWED_EXTENSIONS = set({'xls', 'xlsx'})
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-
+     
 class Example(QWidget):
     
     # --- Function to prompt user to upload the file with the updated objectives, and then collect and store the relevant data in an array, which will later be prepped to mail merge. ---
@@ -27,7 +28,21 @@ class Example(QWidget):
 ##        return '.' in filename and \
 ##               filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
         
-    
+    def getEmails(self):
+        print("Getting OSC Master file")
+        Tk().withdraw()
+        filename = askopenfilename()
+        if filename == False:
+            root.quit()
+        # Only continue if an "ONA - Sales by Channel Assignment..." file is being uploaded. If not, prompt again.
+        print("Uploading to "+ str(UPLOAD_FOLDER)) 
+        osc_wb = openpyxl.load_workbook(filename)
+        print("Opening this uploaded file")
+        # Go to the correct worksheet
+        osc_sheet = osc_wb.active
+        print(osc_sheet)
+
+        
     def getFile(self):
 
         # Function to format the currency values with $ and comma separation
@@ -40,60 +55,44 @@ class Example(QWidget):
                 return "$"+amt
 
             
-##        def confirmFields(columns):
-##            # Check that the columns are lined up correctly
-##            columnLetters = []
-##            labelNames = []
-##            for col in columns:
-##                columnLetters.append(str(get_column_letter(col))
-##            confirm = QMessageBox()
-##            confirm.setIcon(QMessageBox.Question)
-##            confirm.SetText("Are the columns matched up correctly?")
-##            confirm.setWindowTitle("Confirm Merge Fields")
-##            detailText = ""
-##            for letter in columnLetters:
-##                detailText = detailText + letter
-##                detailText = detailText + " " 
-##            confirm.setDetailedText(detailText)
-##            confirm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-##            QMessageBox.Yes.buttonClicked
 
         # Function to confirm the fields are matched properly to merge    
-        def confirmFields(label_list):
-            print("Confirm fields!")
-            confirm = QMessageBox()
-            confirm.setIcon(QMessageBox.Question)
-            confirm.setText("Are the fields matched to the correct columns?")
-            confirm.setInformativeText("Click 'Show Details' to check the detected merge fields. If the pairings are not correct, you can manually enter the correct columns for each field.")
-            confirm.setDetailedText(label_list[0] + ": OSC Number \n"\
-                                    "-------------------------------- \n"\
-                                    "" + label_list[1] + ": Aero Status \n"\
-                                    "-------------------------------- \n"\
-                                    "" + label_list[2] + ": DBA \n"\
-                                    "-------------------------------- \n"\
-                                    "" + label_list[3] + ": Objective \n"\
-                                    "-------------------------------- \n"\
-                                    "" + label_list[4] + ": MTD \n"\
-                                    "-------------------------------- \n"\
-                                    "" + label_list[5] + ": % of Goal \n"\
-                                    "-------------------------------- \n"\
-                                    "" + label_list[6] + ": PurchasesToGo \n"\
-                                    "-------------------------------- \n"\
-                                    "" + label_list[7] + ": Reward")
-            confirm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-            confirm.exec_()
-            if QMessageBox.No:
-##                layout = QFormLayout()
-##                self.btn = QPushButton("Choose column for field 'OSC Number': ")
-##                layout.add
-                correction, yes = QInputDialog.getText(self, "Manually Enter Fields to Merge", "Enter the correct column letter for the field:")
-            else:
-                print("Fields matched correctly")
+##        def confirmFields(label_list):
+##            print("Confirm fields!")
+##            confirm = QMessageBox()
+##            confirm.setIcon(QMessageBox.Question)
+##            confirm.setText("Are the fields matched to the correct columns?")
+##            confirm.setInformativeText("Click 'Show Details' to check the detected merge fields. If the pairings are not correct, you can manually enter the correct columns for each field.")
+##            confirm.setDetailedText(label_list[0] + ": OSC Number \n"\
+##                                    "-------------------------------- \n"\
+##                                    "" + label_list[1] + ": Aero Status \n"\
+##                                    "-------------------------------- \n"\
+##                                    "" + label_list[2] + ": DBA \n"\
+##                                    "-------------------------------- \n"\
+##                                    "" + label_list[3] + ": Objective \n"\
+##                                    "-------------------------------- \n"\
+##                                    "" + label_list[4] + ": MTD \n"\
+##                                    "-------------------------------- \n"\
+##                                    "" + label_list[5] + ": % of Goal \n"\
+##                                    "-------------------------------- \n"\
+##                                    "" + label_list[6] + ": PurchasesToGo \n"\
+##                                    "-------------------------------- \n"\
+##                                    "" + label_list[7] + ": Reward")
+##            confirm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+##            confirm.exec_()
+##            if QMessageBox.No:
+##                print("Correct fields")
             
         print("Getting file")
+        def quit(self):
+            global root
+            self.root.destroy()
+        root = Tk()
         Tk().withdraw()
         filename = askopenfilename()
-        print(filename)
+        if filename == "":
+            print("no file uploaded")
+            self.quit()
         # Only continue if an "ONA - Sales by Channel Assignment..." file is being uploaded. If not, prompt again.
         print("Uploading to "+ str(UPLOAD_FOLDER)) 
         data_wb = openpyxl.load_workbook(filename)
@@ -161,7 +160,7 @@ class Example(QWidget):
         PTGLabel = str(sheet.cell(row = labelRow, column = PTGColumn).value)
         labels = (codeLabel, aeroLabel, DBALabel, objectiveLabel, PTDLabel, percentLabel, PTGLabel, rewardLabel)
 
-        confirmFields(labels)
+##        confirmFields(labels)
             # !!!!! At this point, prompt user to confirm that the fields are matched up (create little table in the message box maybe?)
             # --------------------------------------------------------------------------------------------------------------------------
             # Only pay attention to rows labeled "OSC" that have a valid reward amountf
@@ -221,8 +220,9 @@ class Example(QWidget):
                 continue
             merge_sheet = merge_wb.active
             merge_wb.save("MailMerge.xlsx")
-            
-
+            if merge_sheet.cells(row = 2, column = 5)== None:
+                self.getEmails
+            merge_wb.save("MailMerge.xlsx")
 
     def __init__(self):
         super().__init__()
@@ -236,12 +236,13 @@ class Example(QWidget):
         btn.move(50,50)
         #When this button is clicked, function getFile will be called
         btn.clicked.connect(self.getFile)
-        rewardsBtn = QPushButton('Upload end of month file to calculate rewards', self)
-        rewardsBtn.resize(rewardsBtn.sizeHint())
-        rewardsBtn.move(350, 50)
+##        rewardsBtn = QPushButton('Upload end of month file to calculate rewards', self)
+##        rewardsBtn.resize(rewardsBtn.sizeHint())
+##        rewardsBtn.move(350, 50)
         updateBtn = QPushButton('Upload file to update contact information', self)
         updateBtn.resize(updateBtn.sizeHint())
-        updateBtn.move(350, 10)
+        updateBtn.move(350, 50)
+        updateBtn.clicked.connect(self.getEmails)
         self.setGeometry(100, 100, 800, 500)
         self.setWindowTitle('Orio Email Automation Program')
         self.setWindowIcon(QIcon('logo.png'))        
