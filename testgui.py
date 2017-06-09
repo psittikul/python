@@ -25,8 +25,17 @@ class Example(QWidget):
 ##    def allowed_file(filename):
 ##        return '.' in filename and \
 ##               filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
-
+        
+    
     def getFile(self):
+        def formatCurrency(amt):
+            if len(amt) > 3:
+                hundreds = amt[len(amt)-3:len(amt)+1]
+                thousands = amt[:len(amt)-3]
+                return "$"+thousands+","+hundreds
+            else:
+                return "$"+amt
+    
         print("Getting file")
         Tk().withdraw()
         filename = askopenfilename()
@@ -96,10 +105,14 @@ class Example(QWidget):
             
             # !!!!! At this point, prompt user to confirm that the fields are matched up (create little table in the message box maybe?)
             # --------------------------------------------------------------------------------------------------------------------------
-            # Only pay attention to rows labeled "OSC" that have a valid reward amount
+            # Only pay attention to rows labeled "OSC" that have a valid reward amountf
         for row in range(23, sheet.max_row + 1):
             if str(sheet.cell(row = row, column = 2).value) == "OSC" and type(sheet.cell(row = row, column = rewardColumn).value) == int:
                 code = str(sheet.cell(row = row, column = 1).value)
+                if "-" in code:
+                    code = code[1:len(code)+1]
+                else:
+                    code = code
                 # Reward will be in the column labeled "Rwd."
                 rewardCell = sheet.cell(row = row, column = rewardColumn)
                 reward = "$" + str(rewardCell.value)
@@ -110,18 +123,26 @@ class Example(QWidget):
                 DBACell = sheet.cell(row = row, column = DBAColumn)
                 DBA = str(DBACell.value)
                 # Objective will be 2 cells to the right of DBA
+                print("Getting objective value")
                 objectiveCell = sheet.cell(row = row, column = objectiveColumn)
-                objective = "$" + str(objectiveCell.value)
+                print(objectiveCell.value)
+                objective = str(objectiveCell.value)
+                objective = formatCurrency(objective)
                 # Purchases to date will be 1 cell to the right of objective
                 PTDCell = sheet.cell(row = row, column = PTDColumn)
-                PTD = "$"+str(PTDCell.value)
+                PTD = str(PTDCell.value)
+                PTD = formatCurrency(PTD)
                 # % of objective will be 1 cell to the right of PTD
                 percentCell = sheet.cell(row = row, column = percentColumn)
-                percent = percentCell.value
+                print(percentCell.value)
+                percent = int(percentCell.value*100)
+                print(percent)
+                percent = str(percent)+"%"
                 # Purchases to go will be 3 cells to the right of % of objective
                 PTGCell = sheet.cell(row = row, column = PTGColumn)
-                PTG = "$" + str(PTGCell.value)
-                print(code + " " + DBA + " " + aeroStatus + " " + objective + " " + reward)
+                PTG = str(PTGCell.value)
+                PTG = formatCurrency(PTG)
+                print(code + " " + DBA + " " + aeroStatus + " " + str(objective) + " " + reward)
                 # Now that you've gotten the information, copy it over to Mail Merge
                 merge_sheet = merge_wb.active
                 # Go through all the info columns in Mail Merge and copy over the values
@@ -141,6 +162,9 @@ class Example(QWidget):
                 continue
             merge_sheet = merge_wb.active
             merge_wb.save("MailMerge.xlsx")
+            
+
+
     def __init__(self):
         super().__init__()
         
