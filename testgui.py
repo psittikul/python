@@ -3,7 +3,8 @@ import os
 import errno
 import tkinter
 import openpyxl
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton
+from openpyxl.utils import get_column_letter
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QMessageBox
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from flask import Flask, render_template, request
@@ -28,6 +29,7 @@ class Example(QWidget):
         
     
     def getFile(self):
+        
         def formatCurrency(amt):
             if len(amt) > 3:
                 hundreds = amt[len(amt)-3:len(amt)+1]
@@ -35,7 +37,29 @@ class Example(QWidget):
                 return "$"+thousands+","+hundreds
             else:
                 return "$"+amt
-    
+
+            
+##        def confirmFields(columns):
+##            # Check that the columns are lined up correctly
+##            columnLetters = []
+##            labelNames = []
+##            for col in columns:
+##                columnLetters.append(str(get_column_letter(col))
+##            confirm = QMessageBox()
+##            confirm.setIcon(QMessageBox.Question)
+##            confirm.SetText("Are the columns matched up correctly?")
+##            confirm.setWindowTitle("Confirm Merge Fields")
+##            detailText = ""
+##            for letter in columnLetters:
+##                detailText = detailText + letter
+##                detailText = detailText + " " 
+##            confirm.setDetailedText(detailText)
+##            confirm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+##            QMessageBox.Yes.buttonClicked 
+        def confirmFields():
+            print("Confirm fields!")
+            msg = QMessageBox.question(self, "Are the fields matched up correctly?", "Test", QMessageBox.Yes | QMessageBox.No)
+            
         print("Getting file")
         Tk().withdraw()
         filename = askopenfilename()
@@ -73,14 +97,7 @@ class Example(QWidget):
             merge_sheet['K1'] = "Reward"
             print("All headers added")
             merge_wb.save('MailMerge.xlsx')
-            
-##        # Check that the columns are lined up correctly
-##        confirm = QMessageBox()
-##        confirm.setIcon(QMessageBox.Question)
-##        confirm.SetText("Are the columns matched up correctly?")
-##        confirm.setWindowTitle("Confirm Merge Fields")
-##        confirm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-##        QMessageBox.Yes.buttonClicked 
+
         
         # Reactivate the objectives update workbook
         print("Reactivating objectives workbook now")
@@ -90,19 +107,31 @@ class Example(QWidget):
         # We'll start populating the mail merge worksheet at row 2
         mergeRow = 2
         # Search for the cell headers and take note of the column index
-        for column in range(1, sheet.max_column + 1):
-            if sheet.cell(row = 24, column = column).value == "Rwd.":
-                rewardColumn = column
-                break
-            else:
-                continue
+        for row in range(23,30):                
+            for column in range(1, sheet.max_column + 1):
+                if sheet.cell(row = row, column = column).value == "Rwd.":
+                    rewardColumn = column
+                    rewardLabel = "Rwd."
+                    labelRow = row
+                    break
+                else:
+                    continue
         aeroColumn = rewardColumn - 1
+        aeroLabel = str(sheet.cell(row = labelRow, column = aeroColumn).value)
         DBAColumn = rewardColumn + 2
+        DBALabel = str(sheet.cell(row = labelRow, column = DBAColumn).value)
         objectiveColumn = DBAColumn + 2
+        objectiveLabel = str(sheet.cell(row = labelRow, column = objectiveColumn).value)
         PTDColumn = objectiveColumn + 1
+        PTDLabel = str(sheet.cell(row = labelRow, column = PTDColumn).value)
         percentColumn = PTDColumn + 1
+        percentLabel = str(sheet.cell(row = labelRow, column = percentColumn).value)
         PTGColumn = percentColumn + 3
-            
+        PTGLabel = str(sheet.cell(row = labelRow, column = PTGColumn).value)
+        columns = (aeroColumn, DBAColumn, objectiveColumn, PTDColumn, percentColumn, PTGColumn)
+        labels = (aeroLabel, DBALabel, objectiveLabel, PTDLabel, percentLabel, PTGLabel)
+
+        confirmFields()
             # !!!!! At this point, prompt user to confirm that the fields are matched up (create little table in the message box maybe?)
             # --------------------------------------------------------------------------------------------------------------------------
             # Only pay attention to rows labeled "OSC" that have a valid reward amountf
@@ -167,8 +196,8 @@ class Example(QWidget):
 
     def __init__(self):
         super().__init__()
-        
-        self.initUI()        
+        self.initUI()
+
         
     def initUI(self):
 
