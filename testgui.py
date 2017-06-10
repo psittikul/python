@@ -32,8 +32,11 @@ class Example(QWidget):
         print("Getting OSC Master file")
         Tk().withdraw()
         filename = askopenfilename()
-        if filename == False:
-            root.quit()
+        if not filename:
+            self.e.config(state=NORMAL)
+            self.e.delete(0,END)
+            self.e.insert(0,"...")
+            self.e.config(state="readonly")
         # Only continue if an "ONA - Sales by Channel Assignment..." file is being uploaded. If not, prompt again.
         print("Uploading to "+ str(UPLOAD_FOLDER)) 
         osc_wb = openpyxl.load_workbook(filename)
@@ -84,15 +87,12 @@ class Example(QWidget):
 ##                print("Correct fields")
             
         print("Getting file")
-        def quit(self):
-            global root
-            self.root.destroy()
-        root = Tk()
         Tk().withdraw()
-        filename = askopenfilename()
-        if filename == "":
-            print("no file uploaded")
-            self.quit()
+        self.filename = askopenfilename()
+        if not self.filename:
+            print("Cancel pressed")
+            self.close()
+            
         # Only continue if an "ONA - Sales by Channel Assignment..." file is being uploaded. If not, prompt again.
         print("Uploading to "+ str(UPLOAD_FOLDER)) 
         data_wb = openpyxl.load_workbook(filename)
