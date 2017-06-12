@@ -173,10 +173,21 @@ class Example(QWidget):
                 continue
             merge_sheet = merge_wb.active
             merge_wb.save("MailMerge.xlsx")
-
+        print(merge_sheet.cell(row=2, column=5).value)
+        if merge_sheet.cell(row=2, column=5).value is None:
+            print("Getting emails")
+            self.emails()
+        else:
+            self.close()
 
     # Function to ask for OSC Master upload and copy those emails to the Mail Merge file
     def emails(self):
+        print("Getting file")
+        Tk().withdraw()
+        self.filename = askopenfilename()
+        if not self.filename:
+            print("Cancel pressed")
+            self.close()
         print("Uploading to " + str(UPLOAD_FOLDER))
         OSC_wb = openpyxl.load_workbook(self.filename)
         print("Opening this uploaded file")
@@ -216,10 +227,14 @@ class Example(QWidget):
         print("Entering for loop to gather data")
         # We'll start populating the mail merge worksheet at row 2
         mergeRow = 2
+        print(OSC_sheet)
         # Start at header row of OSC Master to determine the column each manager's email is in
+        print(OSC_sheet.cell(row = 1, column = 1).value)
         for column in range(1, OSC_sheet.max_column + 1):
+            print(str(OSC_sheet.cell(row = 1, column = column).value))
             if OSC_sheet.cell(row = 1, column = column).value == "OSC":
                 code_column = column
+                print("OSC code column = " + str(code_column))
             if OSC_sheet.cell(row=1, column=column).value == "General Manager Name":
                 GM_name_column = column
             if OSC_sheet.cell(row = 1, column = column).value == "Email(1)":
@@ -233,9 +248,12 @@ class Example(QWidget):
             if OSC_sheet.cell(row = 1, column = column).value == "Email(3)":
                 SM_email_column = column
                 break
+            break
         # Now that you've determined the location of each field, go through every row in the sheet to get contact info
         # But skip any emails that have already been copied or are blank
         for row in range(2, OSC_sheet.max_row + 1):
+            print("Getting emails")
+            print(OSC_sheet.cell(row = row, column = GM_email_column).value)
             OSC_names = []
             OSC_emails = []
             PM_email = str(OSC_sheet.cell(row=row, column=PM_email_column).value)
