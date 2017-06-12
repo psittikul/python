@@ -247,8 +247,6 @@ class Example(QWidget):
                 SM_name_column = column
             if OSC_sheet.cell(row = 1, column = column).value == "Email(3)":
                 SM_email_column = column
-                break
-            break
         # Now that you've determined the location of each field, go through every row in the sheet to get contact info
         # But skip any emails that have already been copied or are blank
         for row in range(2, OSC_sheet.max_row + 1):
