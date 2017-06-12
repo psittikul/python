@@ -28,23 +28,6 @@ class Example(QWidget):
 ##        return '.' in filename and \
 ##               filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
         
-    def getEmails(self):
-        print("Getting OSC Master file")
-        Tk().withdraw()
-        filename = askopenfilename()
-        if not filename:
-            self.e.config(state=NORMAL)
-            self.e.delete(0,END)
-            self.e.insert(0,"...")
-            self.e.config(state="readonly")
-        # Only continue if an "ONA - Sales by Channel Assignment..." file is being uploaded. If not, prompt again.
-        print("Uploading to "+ str(UPLOAD_FOLDER)) 
-        osc_wb = openpyxl.load_workbook(filename)
-        print("Opening this uploaded file")
-        # Go to the correct worksheet
-        osc_sheet = osc_wb.active
-        print(osc_sheet)
-
         
     def getFile(self):
 
@@ -95,7 +78,7 @@ class Example(QWidget):
             
         # Only continue if an "ONA - Sales by Channel Assignment..." file is being uploaded. If not, prompt again.
         print("Uploading to "+ str(UPLOAD_FOLDER)) 
-        data_wb = openpyxl.load_workbook(filename)
+        data_wb = openpyxl.load_workbook(self.filename)
         print("Opening this uploaded file")
         # Go to the correct worksheet
         sheet = data_wb.active
@@ -160,13 +143,13 @@ class Example(QWidget):
         PTGLabel = str(sheet.cell(row = labelRow, column = PTGColumn).value)
         labels = (codeLabel, aeroLabel, DBALabel, objectiveLabel, PTDLabel, percentLabel, PTGLabel, rewardLabel)
 
-##        confirmFields(labels)
-            # !!!!! At this point, prompt user to confirm that the fields are matched up (create little table in the message box maybe?)
+            # Start at top of file looking for the column headers to determine the location of each field
+            # Then gather those values to be stored in variables for copying over to "Mail Merge"
             # --------------------------------------------------------------------------------------------------------------------------
-            # Only pay attention to rows labeled "OSC" that have a valid reward amountf
         for row in range(23, sheet.max_row + 1):
             if str(sheet.cell(row = row, column = 2).value) == "OSC" and type(sheet.cell(row = row, column = rewardColumn).value) == int:
                 code = str(sheet.cell(row = row, column = 1).value)
+                # If the OSC code is negative, take the "-" symbol out of it
                 if "-" in code:
                     code = code[1:len(code)+1]
                 else:
@@ -220,10 +203,9 @@ class Example(QWidget):
                 continue
             merge_sheet = merge_wb.active
             merge_wb.save("MailMerge.xlsx")
-            if merge_sheet.cells(row = 2, column = 5)== None:
-                self.getEmails
-            merge_wb.save("MailMerge.xlsx")
 
+    # Start up functions
+    # --------------------------------------------------------------------------------------------------------------------------
     def __init__(self):
         super().__init__()
         self.initUI()
@@ -231,18 +213,23 @@ class Example(QWidget):
         
     def initUI(self):
 
+        # Upload sales objectives button connected to "getFile"
         btn = QPushButton('Upload sales objective file to prep for mail merge', self)
         btn.resize(btn.sizeHint())
         btn.move(50,50)
-        #When this button is clicked, function getFile will be called
         btn.clicked.connect(self.getFile)
-##        rewardsBtn = QPushButton('Upload end of month file to calculate rewards', self)
-##        rewardsBtn.resize(rewardsBtn.sizeHint())
-##        rewardsBtn.move(350, 50)
+
+    # Upload end of month file to calculate rewards
+        # Assume OSC qualify = meet monthly goal
+        # Assume IRF qualify = Over x amount of sales that month --> 3% of sales; Met goal --> 5% of sales
+#        rewardsBtn = QPushButton('Upload end of month file to calculate rewards', self)
+#        rewardsBtn.resize(rewardsBtn.sizeHint())
+#        rewardsBtn.move(350, 50)
+        
+    # Upload OSC Master file button connected to "getEmail"
         updateBtn = QPushButton('Upload file to update contact information', self)
         updateBtn.resize(updateBtn.sizeHint())
         updateBtn.move(350, 50)
-        updateBtn.clicked.connect(self.getEmails)
         self.setGeometry(100, 100, 800, 500)
         self.setWindowTitle('Orio Email Automation Program')
         self.setWindowIcon(QIcon('logo.png'))        
