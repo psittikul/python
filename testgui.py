@@ -4,6 +4,7 @@ import win32com.client
 import errno
 import tkinter
 import openpyxl
+from PyQt5 import QtGui
 from openpyxl.utils import get_column_letter
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -56,6 +57,16 @@ class Example(QWidget):
 
         Tk().withdraw()
         self.filename = askopenfilename()
+        if "Sales" not in str(self.filename):
+            confirm = QMessageBox()
+            confirm.setIcon(QMessageBox.Warning)
+            confirm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            confirm.setText("This doesn't look like the sales objectives workbook. Are you sure this is it?")
+            confirm.exec_()
+            if QMessageBox.No:
+                Tk().withdraw()
+                self.filename = askopenfilename()
+
         if not self.filename:
             self.close()
 
@@ -161,6 +172,16 @@ class Example(QWidget):
     def emails(self):
         Tk().withdraw()
         self.filename = askopenfilename()
+        if "OSC" not in str(self.filename):
+            confirm = QMessageBox()
+            confirm.setIcon(QMessageBox.Warning)
+            confirm.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+            confirm.setText("This doesn't look like the OSC Master workbook. Are you sure this is it?")
+            confirm.exec_()
+            if QMessageBox.No:
+                Tk().withdraw()
+                self.filename = askopenfilename()
+
         if not self.filename:
             self.close()
         OSC_wb = openpyxl.load_workbook(self.filename)
@@ -316,6 +337,7 @@ class Example(QWidget):
         btn.resize(btn.sizeHint())
         btn.move(100, 100)
         btn.clicked.connect(self.objectives)
+
 
     # Upload end of month file to calculate rewards
         # Assume OSC qualify = meet monthly goal
