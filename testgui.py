@@ -4,7 +4,6 @@ import win32com.client
 import errno
 import tkinter
 import openpyxl
-from PyQt5 import QtGui
 from openpyxl.utils import get_column_letter
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -318,8 +317,8 @@ class Example(QWidget):
         finalprompt = QMessageBox()
         finalprompt.setIcon(QMessageBox.Question)
         finalprompt.setText("Open and view completed Mail Merge file?")
-        finalprompt.exec_()
         finalprompt.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        finalprompt.exec_()
         if QMessageBox.Yes:
             os.startfile(str(os.getcwd()) + "\MailMerge.xlsx")
         else:
@@ -337,7 +336,6 @@ class Example(QWidget):
         btn.resize(btn.sizeHint())
         btn.move(100, 100)
         btn.clicked.connect(self.objectives)
-
 
     # Upload end of month file to calculate rewards
         # Assume OSC qualify = meet monthly goal
