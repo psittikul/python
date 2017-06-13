@@ -11,6 +11,8 @@ from PyQt5.QtCore import *
 from flask import Flask, render_template, request
 from werkzeug import secure_filename
 import tkinter as tk
+import time
+import progressbar
 from tkinter import Tk
 from tkinter import filedialog
 from tkinter.filedialog import askopenfilename
@@ -108,10 +110,13 @@ class Example(QWidget):
         PTDColumn = objectiveColumn + 1
         percentColumn = PTDColumn + 1
         PTGColumn = percentColumn + 3
-
+        bar = progressbar.ProgressBar(maxval = sheet.max_row, widgets=[progressbar.Bar("=", "[","]")," ", progressbar.Percentage()])
+        bar.start()
         # Now that you've determined the location of each field, go through every row in the sheet to get actual data
         # --------------------------------------------------------------------------------------------------------------------------
         for row in range(23, sheet.max_row + 1):
+            bar.update(row)
+            time.sleep(.08)
             if str(sheet.cell(row=row, column=2).value) == "OSC" and type(
                     sheet.cell(row=row, column=rewardColumn).value) == int:
                 code = str(sheet.cell(row=row, column=1).value)
@@ -163,7 +168,8 @@ class Example(QWidget):
             else:
                 continue
             merge_sheet = merge_wb.active
-            merge_wb.save("MailMerge.xlsx")
+        bar.finish()
+        merge_wb.save("MailMerge.xlsx")
             # Now prompt the user to upload the OSC Master file so we can add the emails
         self.getemailfile()
 
@@ -208,7 +214,11 @@ class Example(QWidget):
                 break
         # Now that you've determined the location of each field, go through every row in the sheet to get contact info
         # But skip any emails that have already been copied or are blank
+        embar = progressbar.ProgressBar(maxval = OSC_sheet.max_row, widgets=[progressbar.Bar("=", "[","]")," ", progressbar.Percentage()])
+        embar.start()
         for row in range(2, OSC_sheet.max_row + 1):
+            embar.update(row)
+            time.sleep(.08)
             if "Active" in str(OSC_sheet.cell(row = row, column = 1).value):
                 OSC_names = []
                 OSC_emails = []
@@ -286,6 +296,7 @@ class Example(QWidget):
             # Save MailMerge
             merge_wb.save("MailMerge.xlsx")
         merge_wb.save("MailMerge.xlsx")
+        embar.finish()
             # Ask user if they'd like to finish and view file or finish and exit
         self.empty()
 
