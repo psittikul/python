@@ -29,6 +29,7 @@ class Example(QWidget):
 ##        return '.' in filename and \
 ##               filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
 
+
     # Function to actually get the objectives update data
     def objectives(self):
 
@@ -185,6 +186,19 @@ class Example(QWidget):
 
     # Function to ask for OSC Master upload and copy those emails to the Mail Merge file
     def emails(self):
+        # Helper function to populate the first column of MailMerge.xlsx with the OSC codes
+        def codes(code_column):
+            OSC_sheet = OSC_wb.active
+            mergeRow = 2
+            for row in range(2, OSC_sheet.max_row + 1):
+                code = str(OSC_sheet.cell(row = row, column = code_column).value)
+                merge_sheet = merge_wb.active
+                merge_sheet.cell(row = mergeRow, column = 1).value = code
+                mergeRow += 1
+                merge_wb.save("MailMerge.xlsx")
+                OSC_sheet = OSC_wb.active
+        #------------------------------------------------------------------------------------
+
         print("Getting file")
         Tk().withdraw()
         self.filename = askopenfilename()
@@ -204,6 +218,11 @@ class Example(QWidget):
             print("Opening existing Mail Merge workbook")
             merge_wb = openpyxl.load_workbook('MailMerge.xlsx')
             merge_sheet = merge_wb.active
+            # Clear old values of the MailMerge sheet
+            for row in range(2, merge_sheet.max_row + 1):
+                for col in range(1, merge_sheet.max_column + 1):
+                    merge_sheet.cell(row = row, column = col).value = None
+            merge_wb.save("MailMerge.xlsx")
         else:
             # if the file doesn't exist yet, create a new mail merge file
             merge_wb = openpyxl.Workbook()
@@ -221,7 +240,7 @@ class Example(QWidget):
             merge_sheet['J1'] = "Purchases ToGo"
             merge_sheet['K1'] = "Reward"
             print("All headers added")
-            merge_wb.save('MailMerge.xlsx')
+            merge_wb.save("MailMerge.xlsx")
 
         # Reactivate the OSC Master workbook
         print("Reactivating OSC Master workbook now")
@@ -259,6 +278,7 @@ class Example(QWidget):
                 break
         # Now that you've determined the location of each field, go through every row in the sheet to get contact info
         # But skip any emails that have already been copied or are blank
+        codes(code_column)
         for row in range(2, OSC_sheet.max_row + 1):
             print("Getting emails")
             if "Active" in str(OSC_sheet.cell(row = row, column = 1).value):
@@ -349,6 +369,29 @@ class Example(QWidget):
                 merge_wb.save("MailMerge.xlsx")
         merge_wb.save("MailMerge.xlsx")
             
+    # def prompt(self):
+    #     print("What does user want to do now")
+    #     next = QMessageBox()
+    #     next.setIcon(QMessageBox.Question)
+    #     next.setText("What would you like to do next?")
+    #     view = QPushButton.addButton("Finish and open Mail Merge file to view", self)
+    #     view.resize(view.sizeHint())
+    #     view.move(50,50)
+    #     view.clicked.connect(self.close())
+    #     close = QPushButton.addButton("Finish and exit", self)
+    #     close.resize(close.sizeHint())
+    #     close.move(100, 50)
+    #     close.clicked.connect(self.close())
+    #     contacts = QPushButton.addButton("Upload OSC Master file to update contacts")
+    #     contacts.resize(contacts.sizeHint())
+    #     contacts.move(50, 200)
+    #     contacts.clicked.connect(self.emails)
+    #     objectives = QPushButton.addButton("Upload sales objectives workbook to update objectives")
+    #     objectives.resize(objectives.sizeHint())
+    #     objectives.move(100, 200)
+    #     objectives.clicked.connect(self.objectives)
+    #     next.exec_()
+
 
         # Function to confirm the fields are matched properly to merge    
 ##        def confirmFields(label_list):
@@ -391,7 +434,7 @@ class Example(QWidget):
         
     def initUI(self):
 
-        # Upload sales objectives button connected to "getFile"
+        # Upload sales objectives button connected to "objectives"
         btn = QPushButton('Upload sales objective file to prep for mail merge', self)
         btn.resize(btn.sizeHint())
         btn.move(50,50)
@@ -404,7 +447,7 @@ class Example(QWidget):
 #        rewardsBtn.resize(rewardsBtn.sizeHint())
 #        rewardsBtn.move(350, 50)
 
-    # Upload OSC Master file button connected to "getEmail"
+    # Upload OSC Master file button connected to "emails"
         updateBtn = QPushButton('Upload file to update contact information', self)
         updateBtn.resize(updateBtn.sizeHint())
         updateBtn.move(350, 50)
