@@ -1,5 +1,6 @@
 import sys
 import os
+import win32com.client
 import errno
 import tkinter
 import openpyxl
@@ -229,66 +230,92 @@ class Example(QWidget):
         mergeRow = 2
         print(OSC_sheet)
         # Start at header row of OSC Master to determine the column each manager's email is in
-        print(OSC_sheet.cell(row = 1, column = 1).value)
         for column in range(1, OSC_sheet.max_column + 1):
             print(str(OSC_sheet.cell(row = 1, column = column).value))
-            if OSC_sheet.cell(row = 1, column = column).value == "OSC":
+            if str(OSC_sheet.cell(row = 1, column = column).value) == "OSC":
                 code_column = column
                 print("OSC code column = " + str(code_column))
-            if OSC_sheet.cell(row=1, column=column).value == "General Manager Name":
+            if str(OSC_sheet.cell(row=1, column=column).value) == "General Manager Name":
+                print("GM Name")
                 GM_name_column = column
-            if OSC_sheet.cell(row = 1, column = column).value == "Email(1)":
+                print("General Manager Name column = " + str(GM_name_column))
+            if str(OSC_sheet.cell(row = 1, column = column).value) == "Email (1)":
                 GM_email_column = column
-            if OSC_sheet.cell(row = 1, column = column).value == "Parts Manager Name":
+                print("General Manager Email column = " + str(GM_email_column))
+            if str(OSC_sheet.cell(row = 1, column = column).value) == "Parts Manager Name":
                 PM_name_column = column
-            if OSC_sheet.cell(row = 1, column = column).value =="Email(2)":
+                print("Parts Manager Name column = " + str(PM_name_column))
+            if str(OSC_sheet.cell(row = 1, column = column).value) =="Email (2)":
                 PM_email_column = column
-            if OSC_sheet.cell(row = 1, column = column).value == "Service manager Name":
+                print("Parts Manager Email column = " + str(PM_email_column))
+            if str(OSC_sheet.cell(row = 1, column = column).value) == "Service Manager Name":
                 SM_name_column = column
-            if OSC_sheet.cell(row = 1, column = column).value == "Email(3)":
+                print("Service Manager Name column = " + str(SM_name_column))
+            if str(OSC_sheet.cell(row = 1, column = column).value) == "Email (3)":
                 SM_email_column = column
+                print("Service Manager Email column = " + str(SM_email_column))
+                break
         # Now that you've determined the location of each field, go through every row in the sheet to get contact info
         # But skip any emails that have already been copied or are blank
         for row in range(2, OSC_sheet.max_row + 1):
             print("Getting emails")
-            print(OSC_sheet.cell(row = row, column = GM_email_column).value)
-            OSC_names = []
-            OSC_emails = []
-            PM_email = str(OSC_sheet.cell(row=row, column=PM_email_column).value)
-            GM_email = str(OSC_sheet.cell(row=row, column=GM_email_column).value)
-            SM_email = str(OSC_sheet.cell(row=row, column=SM_email_column).value)
-            code = str(OSC_sheet.cell(row = row, column = code_column).value)
-            if "@" in GM_email:
-                GM_name = str(OSC_sheet.cell(row = row, column = GM_name_column).value)
-                OSC_names += GM_name
-                OSC_emails += GM_email
-            if "@" in PM_email and PM_email != GM_email and PM_email != SM_email:
-                PM_name = str(OSC_sheet.cell(row = row, column = PM_name_column).value)
-                OSC_names += PM_name
-                OSC_emails += PM_email
-            if "@" in SM_email and SM_email != PM_email and SM_email != GM_email:
-                SM_name = str(OSC_sheet.cell(row = row, column = SM_name_column).value)
-                OSC_names += SM_name
-                OSC_emails += SM_email
-
+            if "Active" in str(OSC_sheet.cell(row = row, column = 1).value):
+                OSC_names = []
+                OSC_emails = []
+                PM_email = str(OSC_sheet.cell(row=row, column=PM_email_column).value)
+                print("PM Email: " + PM_email)
+                GM_email = str(OSC_sheet.cell(row=row, column=GM_email_column).value)
+                print("GM Email: " + GM_email)
+                SM_email = str(OSC_sheet.cell(row=row, column=SM_email_column).value)
+                print("SM Email: " + SM_email)
+                code = str(OSC_sheet.cell(row = row, column = code_column).value)
+                print(code)
+                if "@" in GM_email:
+                    GM_name = str(OSC_sheet.cell(row = row, column = GM_name_column).value)
+                    print("GM Name: " + GM_name)
+                    OSC_names.append(GM_name)
+                    OSC_emails.append(GM_email)
+                if "@" in PM_email and PM_email != GM_email and PM_email != SM_email:
+                    PM_name = str(OSC_sheet.cell(row = row, column = PM_name_column).value)
+                    print("PM Name: " + PM_name)
+                    OSC_names.append(PM_name)
+                    OSC_emails.append(PM_email)
+                if "@" in SM_email and SM_email != PM_email and SM_email != GM_email:
+                    SM_name = str(OSC_sheet.cell(row = row, column = SM_name_column).value)
+                    print("SM Name: " + SM_name)
+                    OSC_names.append(SM_name)
+                    OSC_emails.append(SM_email)
+            else:
+                continue
             # Now that you've gotten the information, copy it over to Mail Merge
             merge_sheet = merge_wb.active
             for row in range(2, merge_sheet.max_row + 1):
-                if merge_sheet.cell(row = row, column = 1).value == code:
+                if str(merge_sheet.cell(row = row, column = 1).value) == code:
+                    print("OSC #: " + code + "; GM: " + OSC_names[0])
                     name = OSC_names[0]
+                    print(str(OSC_names[0]))
                     fn = name[:name.rindex(" ")]
                     ln = name[name.rindex(" ") + 1:]
                     email = OSC_emails[0]
+                    print(fn)
                     merge_sheet.cell(row = row, column = 3).value = fn
                     merge_sheet.cell(row = row, column = 4).value = ln
                     merge_sheet.cell(row = row, column = 5).value = email
                     if len(OSC_emails) > 1:
-                        for contact_index in range(1, len(OSC_emails) - 1):
+                        print(len(OSC_emails))
+                        print("PM Name: " + OSC_names[1])
+                        for em in OSC_emails:
+                            print(OSC_emails.index(email))
+                            curr_index = OSC_emails.index(em) + 1
+                            if curr_index > len(OSC_emails) - 1:
+                                print("Reached end of list")
+                                break
                             newRow = merge_sheet.max_row + 1
-                            name = OSC_names[contact_index]
+                            name = OSC_names[curr_index]
+                            print(name)
                             fn = name[:name.rindex(" ")]
                             ln = name[name.rindex(" ") + 1:]
-                            email = OSC_emails[contact_index]
+                            email = OSC_emails[curr_index]
                             merge_sheet.cell(row = newRow, column = 1).value = code
                             merge_sheet.cell(row = newRow, column = 2).value = merge_sheet.cell(row = row, column = 2).value
                             merge_sheet.cell(row = newRow, column = 3).value = fn
@@ -301,10 +328,16 @@ class Example(QWidget):
                             merge_sheet.cell(row = newRow, column = 10).value = merge_sheet.cell(row = row, column = 10).value
                             merge_sheet.cell(row = newRow, column = 11).value = merge_sheet.cell(row = row, column = 11).value
                     break
-                continue
+                else:
+                    continue
+
             # Now that we've copied the information to this row, get the next merge row ready and reactivate the objectives workbook and worksheet
             merge_wb.save("MailMerge.xlsx")
-
+        for row in range(2, merge_sheet.max_row + 1):
+            print("Deleting empty rows")
+            if merge_sheet.cell(row = row, column = 5).value is None:
+                for col in range(1, merge_sheet.max_column + 1):
+                    merge_sheet.cell(row = row, column = col).value = ""
 
             
 
@@ -366,6 +399,7 @@ class Example(QWidget):
         updateBtn = QPushButton('Upload file to update contact information', self)
         updateBtn.resize(updateBtn.sizeHint())
         updateBtn.move(350, 50)
+        updateBtn.clicked.connect(self.emails)
         self.setGeometry(100, 100, 800, 500)
         self.setWindowTitle('Orio Email Automation Program')
         self.setWindowIcon(QIcon('logo.png'))        
