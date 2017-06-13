@@ -77,7 +77,7 @@ class Example(QWidget):
             merge_sheet['G1'] = "Objective"
             merge_sheet['H1'] = "MTD"
             merge_sheet['I1'] = "% of Goal"
-            merge_sheet['J1'] = "PurchasesToGo"
+            merge_sheet['J1'] = "Purchases ToGo"
             merge_sheet['K1'] = "Reward"
             print("All headers added")
             merge_wb.save('MailMerge.xlsx')
@@ -176,6 +176,8 @@ class Example(QWidget):
             merge_wb.save("MailMerge.xlsx")
         print(merge_sheet.cell(row=2, column=5).value)
         if merge_sheet.cell(row=2, column=5).value is None:
+            # Ask user if they'd like to finish and view file, finish and exit, or upload contacts
+            # Only call self.empty() on either finish buttons
             print("Getting emails")
             self.emails()
         else:
@@ -216,7 +218,7 @@ class Example(QWidget):
             merge_sheet['G1'] = "Objective"
             merge_sheet['H1'] = "MTD"
             merge_sheet['I1'] = "% of Goal"
-            merge_sheet['J1'] = "PurchasesToGo"
+            merge_sheet['J1'] = "Purchases ToGo"
             merge_sheet['K1'] = "Reward"
             print("All headers added")
             merge_wb.save('MailMerge.xlsx')
@@ -331,14 +333,21 @@ class Example(QWidget):
                 else:
                     continue
 
-            # Now that we've copied the information to this row, get the next merge row ready and reactivate the objectives workbook and worksheet
+            # Save MailMerge
             merge_wb.save("MailMerge.xlsx")
+            # Ask user if they'd like to finish and view file, finish and exit, or upload objectives file
+            self.empty()
+
+
+        # Delete empty rows in MailMerge.xlsx
+    def empty(self):
         for row in range(2, merge_sheet.max_row + 1):
             print("Deleting empty rows")
             if merge_sheet.cell(row = row, column = 5).value is None:
                 for col in range(1, merge_sheet.max_column + 1):
                     merge_sheet.cell(row = row, column = col).value = ""
-
+                merge_wb.save("MailMerge.xlsx")
+        merge_wb.save("MailMerge.xlsx")
             
 
         # Function to confirm the fields are matched properly to merge    
