@@ -1,3 +1,4 @@
+from __future__ import division
 import sys
 import os
 import win32com.client
@@ -8,10 +9,10 @@ from openpyxl.utils import get_column_letter
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
+from PyQt5.QtCore import pyqtSlot, pyqtSignal
 from flask import Flask, render_template, request
-from werkzeug import secure_filename
+
 import tkinter as tk
-import time
 import progressbar
 from tkinter import Tk
 from tkinter import filedialog
@@ -22,10 +23,28 @@ ALLOWED_EXTENSIONS = set({'xls', 'xlsx'})
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-     
+
+
+
 class Example(QWidget):
-    
-    # --- Function to prompt user to upload the file with the updated objectives, and then collect and store the relevant data in an array, which will later be prepped to mail merge. ---
+    progressingSignal = pyqtSignal(float)
+    emailProgressingSignal = pyqtSignal(float)
+    finishProgressingSignal = pyqtSignal(float)
+
+    def updateProgress(self, value):
+        value = value * 100
+        self.objectivesProgress.setValue(value)
+    def updateEmailsProgress(self, value):
+        print("Email progressing signal sent, leading to updateEmailsProgress being called")
+        value = value * 100
+        self.emailsProgress.setValue(value)
+        print(self.emailsProgress.value())
+    def updateFinishProgress(self, value):
+        print("Finish progressing signal sent, leading to finishProgress being called")
+        print(value)
+        value = value * 100
+        self.finishProgress.setValue(value)
+        # --- Function to prompt user to upload the file with the updated objectives, and then collect and store the relevant data in an array, which will later be prepped to mail merge. ---
     # !! Add code in to make sure it's an accepted file type later
 ##    def allowed_file(filename):
 ##        return '.' in filename and \
@@ -110,13 +129,19 @@ class Example(QWidget):
         PTDColumn = objectiveColumn + 1
         percentColumn = PTDColumn + 1
         PTGColumn = percentColumn + 3
-        bar = progressbar.ProgressBar(maxval = sheet.max_row, widgets=[progressbar.Bar("=", "[","]")," ", progressbar.Percentage()])
-        bar.start()
+
+
+        # bar = progressbar.ProgressBar(maxval = sheet.max_row, widgets=[progressbar.Bar("=", "[","]")," ", progressbar.Percentage()])
+        # bar.start()
         # Now that you've determined the location of each field, go through every row in the sheet to get actual data
         # --------------------------------------------------------------------------------------------------------------------------
+
+
+        print("Going through rows to gather data")
         for row in range(23, sheet.max_row + 1):
-            bar.update(row)
-            time.sleep(.08)
+            # Send a signal to update the status bar every time we loop through
+            signal = row/(sheet.max_row)
+            self.progressingSignal.emit(signal)
             if str(sheet.cell(row=row, column=2).value) == "OSC" and type(
                     sheet.cell(row=row, column=rewardColumn).value) == int:
                 code = str(sheet.cell(row=row, column=1).value)
@@ -168,13 +193,13 @@ class Example(QWidget):
             else:
                 continue
             merge_sheet = merge_wb.active
-        bar.finish()
         merge_wb.save("MailMerge.xlsx")
             # Now prompt the user to upload the OSC Master file so we can add the emails
         self.getemailfile()
 
     # Function to ask for OSC Master upload and copy those emails to the Mail Merge file
     def emails(self):
+        print("Time to cycle through OSC Master")
         Tk().withdraw()
         self.filename = askopenfilename()
         if "OSC" not in str(self.filename):
@@ -214,11 +239,12 @@ class Example(QWidget):
                 break
         # Now that you've determined the location of each field, go through every row in the sheet to get contact info
         # But skip any emails that have already been copied or are blank
-        embar = progressbar.ProgressBar(maxval = OSC_sheet.max_row, widgets=[progressbar.Bar("=", "[","]")," ", progressbar.Percentage()])
-        embar.start()
         for row in range(2, OSC_sheet.max_row + 1):
-            embar.update(row)
-            time.sleep(.08)
+            print("Processing OSC Master row: " + str(row) + " out of " + str(OSC_sheet.max_row) + " rows")
+            print(str(row) + "/" + str(OSC_sheet.max_row) + "= " + str(row/OSC_sheet.max_row))
+            emailSignal = row / OSC_sheet.max_row
+            self.emailProgressingSignal.emit(emailSignal)
+            print("Sent signal: " + str(emailSignal) + " to updateEmailProgress")
             if "Active" in str(OSC_sheet.cell(row = row, column = 1).value):
                 OSC_names = []
                 OSC_emails = []
@@ -240,14 +266,18 @@ class Example(QWidget):
                     OSC_emails.append(SM_email)
             else:
                 continue
+            print("Copied row " + str(row) + " OSC: " + code + "'s information")
             # Now that you've gotten the information, copy it over to Mail Merge
             mergeFilePath = str(os.getcwd()) + "\MailMerge.xlsx"
             merge_wb = openpyxl.load_workbook(mergeFilePath)
             merge_sheet = merge_wb.active
             for row in range(2, merge_sheet.max_row + 1):
-                if str(merge_sheet.cell(row = row, column = 1).value) == code:
+                value_code = str(merge_sheet.cell(row=row, column=1).value) == code
+                if value_code:
+                    print("Matched OSC")
                     name = OSC_names[0]
                     namePieces = name.split()
+                    print(namePieces)
                     if len(namePieces) == 2:
                         fn = namePieces[0]
                         ln = namePieces[1]
@@ -290,13 +320,13 @@ class Example(QWidget):
                             merge_sheet.cell(row = newRow, column = 9).value = merge_sheet.cell(row = row, column = 9).value
                             merge_sheet.cell(row = newRow, column = 10).value = merge_sheet.cell(row = row, column = 10).value
                             merge_sheet.cell(row = newRow, column = 11).value = merge_sheet.cell(row = row, column = 11).value
+                    print("Pasted row #: " + str(row) + "OSC: " + code + " values")
                     continue
                 else:
                     continue
             # Save MailMerge
             merge_wb.save("MailMerge.xlsx")
         merge_wb.save("MailMerge.xlsx")
-        embar.finish()
             # Ask user if they'd like to finish and view file or finish and exit
         self.empty()
 
@@ -307,6 +337,8 @@ class Example(QWidget):
         merge_wb = openpyxl.load_workbook(mergeFilePath)
         merge_sheet = merge_wb.active
         for row in range(2, merge_sheet.max_row + 1):
+            signal = row/merge_sheet.max_row
+            self.finishProgressingSignal.emit(signal)
             if merge_sheet.cell(row = row, column = 5).value is None:
                 for col in range(1, merge_sheet.max_column + 1):
                     merge_sheet.cell(row = row, column = col).value = ""
@@ -345,8 +377,18 @@ class Example(QWidget):
         # Upload sales objectives button connected to "objectives"
         btn = QPushButton('Upload objectives file to begin mail merge process for weekly OSC objectives update', self)
         btn.resize(btn.sizeHint())
-        btn.move(100, 100)
+        btn.move(100, 40)
         btn.clicked.connect(self.objectives)
+
+        self.objectivesLabel = QLabel(self)
+        self.emailsLabel = QLabel(self)
+        self.finishLabel = QLabel(self)
+        self.objectivesLabel.setText("Uploading Objectives Progress")
+        self.emailsLabel.setText("Uploading Emails Progress")
+        self.finishLabel.setText("Finishing and cleaning up MailMerge.xlsx...")
+        self.objectivesLabel.setGeometry(200,75, 250, 20)
+        self.emailsLabel.setGeometry(200, 125, 250, 20)
+        self.finishLabel.setGeometry(200, 175, 250, 20)
 
     # Upload end of month file to calculate rewards
         # Assume OSC qualify = meet monthly goal
@@ -354,11 +396,21 @@ class Example(QWidget):
 #        rewardsBtn = QPushButton('Upload end of month file to calculate rewards', self)
 #        rewardsBtn.resize(rewardsBtn.sizeHint())
 #        rewardsBtn.move(350, 50)
+        self.objectivesProgress = QProgressBar(self)
+        self.objectivesProgress.setGeometry(200, 100, 250, 20)
+        self.emailsProgress = QProgressBar(self)
+        self.emailsProgress.setGeometry(200, 150, 250, 20)
+        self.finishProgress = QProgressBar(self)
+        self.finishProgress.setGeometry(200, 200, 250, 20)
+        self.progressingSignal.connect(self.updateProgress)
+        self.emailProgressingSignal.connect(self.updateEmailsProgress)
+        self.finishProgressingSignal.connect(self.updateFinishProgress)
 
         self.setGeometry(100, 100, 800, 500)
         self.setWindowTitle('Orio Email Mail Merge Automation Program')
         self.setWindowIcon(QIcon('logo.png'))        
-    
+        print("Creating the signal and slot to update the progress bar!")
+        print("Connected the progress signal to the updateProgress() slot")
         self.show()
 
             
