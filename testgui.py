@@ -19,6 +19,7 @@ from tkinter import filedialog
 from tkinter.filedialog import askopenfilename
 from collections import defaultdict
 UPLOAD_FOLDER = os.getcwd()
+THUMBNAIL_SIZE = 128
 ALLOWED_EXTENSIONS = set({'xls', 'xlsx'})
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -31,17 +32,21 @@ class Example(QWidget):
     emailProgressingSignal = pyqtSignal(float)
     finishProgressingSignal = pyqtSignal(float)
 
+
+    def center(self):
+        frameGm = self.frameGeometry()
+        screen = QApplication.desktop().screenNumber(QApplication.desktop().cursor().pos())
+        centerPoint = QApplication.desktop().screenGeometry(screen).center()
+        frameGm.moveCenter(centerPoint)
+        self.move(frameGm.topLeft())
+
     def updateProgress(self, value):
         value = value * 100
         self.objectivesProgress.setValue(value)
     def updateEmailsProgress(self, value):
-        print("Email progressing signal sent, leading to updateEmailsProgress being called")
         value = value * 100
         self.emailsProgress.setValue(value)
-        print(self.emailsProgress.value())
     def updateFinishProgress(self, value):
-        print("Finish progressing signal sent, leading to finishProgress being called")
-        print(value)
         value = value * 100
         self.finishProgress.setValue(value)
         # --- Function to prompt user to upload the file with the updated objectives, and then collect and store the relevant data in an array, which will later be prepped to mail merge. ---
@@ -137,9 +142,8 @@ class Example(QWidget):
         # --------------------------------------------------------------------------------------------------------------------------
 
 
-        print("Going through rows to gather data")
         for row in range(23, sheet.max_row + 1):
-            # Send a signal to update the status bar every time we loop through
+            # Send a signal to update the status bar every time we pass another row of the objectives sheet
             signal = row/(sheet.max_row)
             self.progressingSignal.emit(signal)
             if str(sheet.cell(row=row, column=2).value) == "OSC" and type(
@@ -199,7 +203,6 @@ class Example(QWidget):
 
     # Function to ask for OSC Master upload and copy those emails to the Mail Merge file
     def emails(self):
-        print("Time to cycle through OSC Master")
         Tk().withdraw()
         self.filename = askopenfilename()
         if "OSC" not in str(self.filename):
@@ -240,11 +243,8 @@ class Example(QWidget):
         # Now that you've determined the location of each field, go through every row in the sheet to get contact info
         # But skip any emails that have already been copied or are blank
         for row in range(2, OSC_sheet.max_row + 1):
-            print("Processing OSC Master row: " + str(row) + " out of " + str(OSC_sheet.max_row) + " rows")
-            print(str(row) + "/" + str(OSC_sheet.max_row) + "= " + str(row/OSC_sheet.max_row))
             emailSignal = row / OSC_sheet.max_row
             self.emailProgressingSignal.emit(emailSignal)
-            print("Sent signal: " + str(emailSignal) + " to updateEmailProgress")
             if "Active" in str(OSC_sheet.cell(row = row, column = 1).value):
                 OSC_names = []
                 OSC_emails = []
@@ -266,7 +266,6 @@ class Example(QWidget):
                     OSC_emails.append(SM_email)
             else:
                 continue
-            print("Copied row " + str(row) + " OSC: " + code + "'s information")
             # Now that you've gotten the information, copy it over to Mail Merge
             mergeFilePath = str(os.getcwd()) + "\MailMerge.xlsx"
             merge_wb = openpyxl.load_workbook(mergeFilePath)
@@ -274,10 +273,8 @@ class Example(QWidget):
             for row in range(2, merge_sheet.max_row + 1):
                 value_code = str(merge_sheet.cell(row=row, column=1).value) == code
                 if value_code:
-                    print("Matched OSC")
                     name = OSC_names[0]
                     namePieces = name.split()
-                    print(namePieces)
                     if len(namePieces) == 2:
                         fn = namePieces[0]
                         ln = namePieces[1]
@@ -320,7 +317,6 @@ class Example(QWidget):
                             merge_sheet.cell(row = newRow, column = 9).value = merge_sheet.cell(row = row, column = 9).value
                             merge_sheet.cell(row = newRow, column = 10).value = merge_sheet.cell(row = row, column = 10).value
                             merge_sheet.cell(row = newRow, column = 11).value = merge_sheet.cell(row = row, column = 11).value
-                    print("Pasted row #: " + str(row) + "OSC: " + code + " values")
                     continue
                 else:
                     continue
@@ -364,6 +360,7 @@ class Example(QWidget):
         finalprompt.exec_()
         if QMessageBox.Yes:
             os.startfile(str(os.getcwd()) + "\MailMerge.xlsx")
+            self.close()
         else:
             self.close()
 
@@ -383,8 +380,8 @@ class Example(QWidget):
         self.objectivesLabel = QLabel(self)
         self.emailsLabel = QLabel(self)
         self.finishLabel = QLabel(self)
-        self.objectivesLabel.setText("Uploading Objectives Progress")
-        self.emailsLabel.setText("Uploading Emails Progress")
+        self.objectivesLabel.setText("Uploading objectives...")
+        self.emailsLabel.setText("Uploading OSC emails...")
         self.finishLabel.setText("Finishing and cleaning up MailMerge.xlsx...")
         self.objectivesLabel.setGeometry(200,75, 250, 20)
         self.emailsLabel.setGeometry(200, 125, 250, 20)
@@ -406,11 +403,17 @@ class Example(QWidget):
         self.emailProgressingSignal.connect(self.updateEmailsProgress)
         self.finishProgressingSignal.connect(self.updateFinishProgress)
 
-        self.setGeometry(100, 100, 800, 500)
+        self.setGeometry(100, 100, 650, 500)
         self.setWindowTitle('Orio Email Mail Merge Automation Program')
-        self.setWindowIcon(QIcon('logo.png'))        
-        print("Creating the signal and slot to update the progress bar!")
-        print("Connected the progress signal to the updateProgress() slot")
+        l = QPixmap("email-icon.png")
+        if l.height() > l.width():
+            l = l.scaledToWidth(THUMBNAIL_SIZE)
+        else:
+            l = l.scaledToHeight(THUMBNAIL_SIZE)
+        l = l.copy(0, 0, THUMBNAIL_SIZE, THUMBNAIL_SIZE)
+        self.setWindowIcon(QIcon(l))
+        self.center()
+        self.setGeometry(self.frameGeometry())
         self.show()
 
             
