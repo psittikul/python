@@ -4,6 +4,7 @@ import os
 import win32com.client
 import errno
 import tkinter
+import time
 import openpyxl
 from openpyxl.utils import get_column_letter
 from PyQt5.QtWidgets import *
@@ -69,6 +70,7 @@ class Example(QWidget):
 
     # Function to actually get the objectives update data
     def objectives(self):
+        print(time.time())
 
         # Internal helper function to format the currency values with $ and comma separation
         def formatCurrency(amt):
@@ -371,6 +373,8 @@ class Example(QWidget):
         
     def initUI(self):
 
+        print(time.time())
+
         # Upload sales objectives button connected to "objectives"
         btn = QPushButton('Upload objectives file to begin mail merge process for weekly OSC objectives update', self)
         btn.resize(btn.sizeHint())
@@ -415,6 +419,7 @@ class Example(QWidget):
         self.center()
         self.setGeometry(self.frameGeometry())
         self.show()
+        print(time.time())
 
             
 
