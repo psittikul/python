@@ -1,29 +1,34 @@
 from __future__ import division
 import sys
 import os
+import time
 import openpyxl
+from openpyxl.utils import get_column_letter
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from PyQt5.QtCore import pyqtSignal
-# from flask import Flask
+from PyQt5.QtCore import *
+from PyQt5.QtCore import pyqtSlot, pyqtSignal
+from flask import Flask, render_template, request
+
+import tkinter as tk
+import progressbar
 from tkinter import Tk
+from tkinter import filedialog
 from tkinter.filedialog import askopenfilename
-# UPLOAD_FOLDER = os.getcwd()
+from collections import defaultdict
+
+UPLOAD_FOLDER = os.getcwd()
 THUMBNAIL_SIZE = 128
-# ALLOWED_EXTENSIONS = set({'xls', 'xlsx'})
-# app = Flask(__name__)
-# app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+ALLOWED_EXTENSIONS = set({'xls', 'xlsx'})
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
-
-
-# noinspection PyArgumentList,PyArgumentList,PyArgumentList,PyArgumentList,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit,PyAttributeOutsideInit
 class Example(QWidget):
     progressingSignal = pyqtSignal(float)
     emailProgressingSignal = pyqtSignal(float)
     finishProgressingSignal = pyqtSignal(float)
 
-    # noinspection PyArgumentList
     def center(self):
         frameGm = self.frameGeometry()
         screen = QApplication.desktop().screenNumber(QApplication.desktop().cursor().pos())
@@ -34,17 +39,20 @@ class Example(QWidget):
     def updateProgress(self, value):
         value = value * 100
         self.objectivesProgress.setValue(value)
+
     def updateEmailsProgress(self, value):
         value = value * 100
         self.emailsProgress.setValue(value)
+
     def updateFinishProgress(self, value):
         value = value * 100
         self.finishProgress.setValue(value)
         # --- Function to prompt user to upload the file with the updated objectives, and then collect and store the relevant data in an array, which will later be prepped to mail merge. ---
-    # !! Add code in to make sure it's an accepted file type later
-##    def allowed_file(filename):
-##        return '.' in filename and \
-##               filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
+        # !! Add code in to make sure it's an accepted file type later
+
+    ##    def allowed_file(filename):
+    ##        return '.' in filename and \
+    ##               filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
 
 
     # Function to prompt user for OSC Master file
@@ -60,15 +68,17 @@ class Example(QWidget):
 
     # Function to actually get the objectives update data
     def objectives(self):
+        print(time.time())
 
         # Internal helper function to format the currency values with $ and comma separation
         def formatCurrency(amt):
             if len(amt) > 3:
-                hundreds = amt[len(amt)-3:len(amt)+1]
-                thousands = amt[:len(amt)-3]
-                return "$"+thousands+","+hundreds
+                hundreds = amt[len(amt) - 3:len(amt) + 1]
+                thousands = amt[:len(amt) - 3]
+                return "$" + thousands + "," + hundreds
             else:
-                return "$"+amt
+                return "$" + amt
+
         # -----------------------------------------------------------------------------------
 
         Tk().withdraw()
@@ -88,6 +98,7 @@ class Example(QWidget):
 
         data_wb = openpyxl.load_workbook(self.filename)
         # Go to the correct worksheet
+        sheet = data_wb.active
         # Create mail merge file
         merge_wb = openpyxl.Workbook()
         merge_sheet = merge_wb.active
@@ -125,7 +136,6 @@ class Example(QWidget):
         percentColumn = PTDColumn + 1
         PTGColumn = percentColumn + 3
 
-
         # bar = progressbar.ProgressBar(maxval = sheet.max_row, widgets=[progressbar.Bar("=", "[","]")," ", progressbar.Percentage()])
         # bar.start()
         # Now that you've determined the location of each field, go through every row in the sheet to get actual data
@@ -134,7 +144,7 @@ class Example(QWidget):
 
         for row in range(23, sheet.max_row + 1):
             # Send a signal to update the status bar every time we pass another row of the objectives sheet
-            signal = row/sheet.max_row
+            signal = row / (sheet.max_row)
             self.progressingSignal.emit(signal)
             if str(sheet.cell(row=row, column=2).value) == "OSC" and type(
                     sheet.cell(row=row, column=rewardColumn).value) == int:
@@ -146,7 +156,7 @@ class Example(QWidget):
                     code = code
                 # Reward will be in the column labeled "Rwd."
                 rewardCell = sheet.cell(row=row, column=rewardColumn)
-                reward = "".join(["$", str(rewardCell.value)])
+                reward = "$" + str(rewardCell.value)
                 # Aero status will be one cell to the left of reward
                 aeroCell = sheet.cell(row=row, column=aeroColumn)
                 aeroStatus = str(aeroCell.value)
@@ -164,7 +174,7 @@ class Example(QWidget):
                 # % of objective will be 1 cell to the right of PTD
                 percentCell = sheet.cell(row=row, column=percentColumn)
                 percent = int(percentCell.value * 100)
-                percent = "".join([str(percent),"%"])
+                percent = str(percent) + "%"
                 # Purchases to go will be 3 cells to the right of % of objective
                 PTGCell = sheet.cell(row=row, column=PTGColumn)
                 PTG = str(PTGCell.value)
@@ -188,11 +198,10 @@ class Example(QWidget):
                 continue
             merge_sheet = merge_wb.active
         merge_wb.save("MailMerge.xlsx")
-            # Now prompt the user to upload the OSC Master file so we can add the emails
+        # Now prompt the user to upload the OSC Master file so we can add the emails
         self.getemailfile()
 
     # Function to ask for OSC Master upload and copy those emails to the Mail Merge file
-    # noinspection PyAssignmentToLoopOrWithParameter
     def emails(self):
         Tk().withdraw()
         self.filename = askopenfilename()
@@ -213,21 +222,22 @@ class Example(QWidget):
         OSC_sheet = OSC_wb.active
         # Cycle through each row. If the row is an OSC, gather this data to later be stored in the array "objectives_update"
         # We'll start populating the mail merge worksheet at row 2
+        mergeRow = 2
         # Start at header row of OSC Master to determine the column each manager's email is in
         for column in range(1, OSC_sheet.max_column + 1):
-            if str(OSC_sheet.cell(row = 1, column = column).value) == "OSC":
+            if str(OSC_sheet.cell(row=1, column=column).value) == "OSC":
                 code_column = column
             if str(OSC_sheet.cell(row=1, column=column).value) == "General Manager Name":
                 GM_name_column = column
-            if str(OSC_sheet.cell(row = 1, column = column).value) == "Email (1)":
+            if str(OSC_sheet.cell(row=1, column=column).value) == "Email (1)":
                 GM_email_column = column
-            if str(OSC_sheet.cell(row = 1, column = column).value) == "Parts Manager Name":
+            if str(OSC_sheet.cell(row=1, column=column).value) == "Parts Manager Name":
                 PM_name_column = column
-            if str(OSC_sheet.cell(row = 1, column = column).value) =="Email (2)":
+            if str(OSC_sheet.cell(row=1, column=column).value) == "Email (2)":
                 PM_email_column = column
-            if str(OSC_sheet.cell(row = 1, column = column).value) == "Service Manager Name":
+            if str(OSC_sheet.cell(row=1, column=column).value) == "Service Manager Name":
                 SM_name_column = column
-            if str(OSC_sheet.cell(row = 1, column = column).value) == "Email (3)":
+            if str(OSC_sheet.cell(row=1, column=column).value) == "Email (3)":
                 SM_email_column = column
                 break
         # Now that you've determined the location of each field, go through every row in the sheet to get contact info
@@ -235,29 +245,29 @@ class Example(QWidget):
         for row in range(2, OSC_sheet.max_row + 1):
             emailSignal = row / OSC_sheet.max_row
             self.emailProgressingSignal.emit(emailSignal)
-            if "Active" in str(OSC_sheet.cell(row = row, column = 1).value):
+            if "Active" in str(OSC_sheet.cell(row=row, column=1).value):
                 OSC_names = []
                 OSC_emails = []
                 PM_email = str(OSC_sheet.cell(row=row, column=PM_email_column).value)
                 GM_email = str(OSC_sheet.cell(row=row, column=GM_email_column).value)
                 SM_email = str(OSC_sheet.cell(row=row, column=SM_email_column).value)
-                code = str(OSC_sheet.cell(row = row, column = code_column).value)
+                code = str(OSC_sheet.cell(row=row, column=code_column).value)
                 if "@" in GM_email:
-                    GM_name = str(OSC_sheet.cell(row = row, column = GM_name_column).value)
+                    GM_name = str(OSC_sheet.cell(row=row, column=GM_name_column).value)
                     OSC_names.append(GM_name)
                     OSC_emails.append(GM_email)
                 if "@" in PM_email and PM_email != GM_email and PM_email != SM_email:
-                    PM_name = str(OSC_sheet.cell(row = row, column = PM_name_column).value)
+                    PM_name = str(OSC_sheet.cell(row=row, column=PM_name_column).value)
                     OSC_names.append(PM_name)
                     OSC_emails.append(PM_email)
                 if "@" in SM_email and SM_email != PM_email and SM_email != GM_email:
-                    SM_name = str(OSC_sheet.cell(row = row, column = SM_name_column).value)
+                    SM_name = str(OSC_sheet.cell(row=row, column=SM_name_column).value)
                     OSC_names.append(SM_name)
                     OSC_emails.append(SM_email)
             else:
                 continue
             # Now that you've gotten the information, copy it over to Mail Merge
-            mergeFilePath = "".join([str(os.getcwd()), "\MailMerge.xlsx"])
+            mergeFilePath = str(os.getcwd()) + "\MailMerge.xlsx"
             merge_wb = openpyxl.load_workbook(mergeFilePath)
             merge_sheet = merge_wb.active
             for row in range(2, merge_sheet.max_row + 1):
@@ -269,21 +279,15 @@ class Example(QWidget):
                         fn = namePieces[0]
                         ln = namePieces[1]
                     elif len(namePieces) == 3:
-                        fn = namePieces[0]
-                        fn2 = namePieces[1]
-                        fn = "".join([fn,fn2])
+                        fn = namePieces[0] + " " + namePieces[1]
                         ln = namePieces[2]
                     elif len(namePieces) == 4:
-                        fn = namePieces[0]
-                        fn2 = namePieces[1]
-                        fn = "".join([fn, fn2])
-                        ln = namePieces[2]
-                        ln2 = namePieces[3]
-                        ln = "".join([ln, ln2])
+                        fn = namePieces[0] + " " + namePieces[1]
+                        ln = namePieces[2] + " " + namePieces[3]
                     email = OSC_emails[0]
-                    merge_sheet.cell(row = row, column = 3).value = fn
-                    merge_sheet.cell(row = row, column = 4).value = ln
-                    merge_sheet.cell(row = row, column = 5).value = email
+                    merge_sheet.cell(row=row, column=3).value = fn
+                    merge_sheet.cell(row=row, column=4).value = ln
+                    merge_sheet.cell(row=row, column=5).value = email
                     if len(OSC_emails) > 1:
                         for em in OSC_emails:
                             curr_index = OSC_emails.index(em) + 1
@@ -296,63 +300,51 @@ class Example(QWidget):
                                 fn = namePieces[0]
                                 ln = namePieces[1]
                             elif len(namePieces) == 3:
-                                fn = namePieces[0]
-                                fn2 = namePieces[1]
-                                fn = "".join([fn, fn2])
+                                fn = namePieces[0] + " " + namePieces[1]
                                 ln = namePieces[2]
                             elif len(namePieces) == 4:
-                                fn = namePieces[0]
-                                fn2 = namePieces[1]
-                                fn = "".join([fn, fn2])
-                                ln = namePieces[2]
-                                ln2 = namePieces[3]
-                                ln = "".join([ln, ln2])
+                                fn = namePieces[0] + " " + namePieces[1]
+                                ln = namePieces[2] + " " + namePieces[3]
                             email = OSC_emails[curr_index]
-                            merge_sheet.cell(row = newRow, column = 1).value = code
-                            merge_sheet.cell(row = newRow, column = 2).value = merge_sheet.cell(row = row, column = 2).value
-                            merge_sheet.cell(row = newRow, column = 3).value = fn
-                            merge_sheet.cell(row = newRow, column = 4).value = ln
-                            merge_sheet.cell(row = newRow, column = 5).value = email
-                            merge_sheet.cell(row = newRow, column = 6).value = merge_sheet.cell(row = row, column = 6).value
-                            merge_sheet.cell(row = newRow, column = 7).value = merge_sheet.cell(row = row, column = 7).value
-                            merge_sheet.cell(row = newRow, column = 8).value = merge_sheet.cell(row = row, column = 8).value
-                            merge_sheet.cell(row = newRow, column = 9).value = merge_sheet.cell(row = row, column = 9).value
-                            merge_sheet.cell(row = newRow, column = 10).value = merge_sheet.cell(row = row, column = 10).value
-                            merge_sheet.cell(row = newRow, column = 11).value = merge_sheet.cell(row = row, column = 11).value
+                            merge_sheet.cell(row=newRow, column=1).value = code
+                            merge_sheet.cell(row=newRow, column=2).value = merge_sheet.cell(row=row, column=2).value
+                            merge_sheet.cell(row=newRow, column=3).value = fn
+                            merge_sheet.cell(row=newRow, column=4).value = ln
+                            merge_sheet.cell(row=newRow, column=5).value = email
+                            merge_sheet.cell(row=newRow, column=6).value = merge_sheet.cell(row=row, column=6).value
+                            merge_sheet.cell(row=newRow, column=7).value = merge_sheet.cell(row=row, column=7).value
+                            merge_sheet.cell(row=newRow, column=8).value = merge_sheet.cell(row=row, column=8).value
+                            merge_sheet.cell(row=newRow, column=9).value = merge_sheet.cell(row=row, column=9).value
+                            merge_sheet.cell(row=newRow, column=10).value = merge_sheet.cell(row=row, column=10).value
+                            merge_sheet.cell(row=newRow, column=11).value = merge_sheet.cell(row=row, column=11).value
                     continue
                 else:
                     continue
             # Save MailMerge
             merge_wb.save("MailMerge.xlsx")
         merge_wb.save("MailMerge.xlsx")
-            # Ask user if they'd like to finish and view file or finish and exit
+        # Ask user if they'd like to finish and view file or finish and exit
         self.empty()
 
 
         # Delete empty rows in MailMerge.xlsx
+
     def empty(self):
         mergeFilePath = str(os.getcwd()) + "\MailMerge.xlsx"
         merge_wb = openpyxl.load_workbook(mergeFilePath)
         merge_sheet = merge_wb.active
         for row in range(2, merge_sheet.max_row + 1):
-            signal = row/merge_sheet.max_row
+            signal = row / merge_sheet.max_row
             self.finishProgressingSignal.emit(signal)
-            if merge_sheet.cell(row = row, column = 5).value is None:
+            if merge_sheet.cell(row=row, column=5).value is None:
                 for col in range(1, merge_sheet.max_column + 1):
-                    merge_sheet.cell(row = row, column = col).value = ""
+                    merge_sheet.cell(row=row, column=col).value = ""
                 merge_wb.save("MailMerge.xlsx")
         merge_wb.save("MailMerge.xlsx")
         self.finalprompt()
 
-
-
-
-
-
-
-
-
-    # Function to ask the user if they'd like to open and view the file or exit
+    # Start up functions
+    # --------------------------------------------------------------------------------------------------------------------------
     def finalprompt(self):
         finalprompt = QMessageBox()
         finalprompt.setIcon(QMessageBox.Question)
@@ -360,7 +352,7 @@ class Example(QWidget):
         finalprompt.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         finalprompt.exec_()
         if QMessageBox.Yes:
-            os.startfile(str(os.getcwd())+"\MailMerge.xlsx")
+            os.startfile(str(os.getcwd()) + "\MailMerge.xlsx")
             self.close()
         else:
             self.close()
@@ -369,9 +361,9 @@ class Example(QWidget):
         super().__init__()
         self.initUI()
 
-
     def initUI(self):
 
+        print(time.time())
 
         # Upload sales objectives button connected to "objectives"
         btn = QPushButton('Upload objectives file to begin mail merge process for weekly OSC objectives update', self)
@@ -385,16 +377,16 @@ class Example(QWidget):
         self.objectivesLabel.setText("Uploading objectives...")
         self.emailsLabel.setText("Uploading OSC emails...")
         self.finishLabel.setText("Finishing and cleaning up MailMerge.xlsx...")
-        self.objectivesLabel.setGeometry(200,75, 250, 20)
+        self.objectivesLabel.setGeometry(200, 75, 250, 20)
         self.emailsLabel.setGeometry(200, 125, 250, 20)
         self.finishLabel.setGeometry(200, 175, 250, 20)
 
-    # Upload end of month file to calculate rewards
+        # Upload end of month file to calculate rewards
         # Assume OSC qualify = meet monthly goal
         # Assume IRF qualify = Over x amount of sales that month --> 3% of sales; Met goal --> 5% of sales
-#        rewardsBtn = QPushButton('Upload end of month file to calculate rewards', self)
-#        rewardsBtn.resize(rewardsBtn.sizeHint())
-#        rewardsBtn.move(350, 50)
+        #        rewardsBtn = QPushButton('Upload end of month file to calculate rewards', self)
+        #        rewardsBtn.resize(rewardsBtn.sizeHint())
+        #        rewardsBtn.move(350, 50)
         self.objectivesProgress = QProgressBar(self)
         self.objectivesProgress.setGeometry(200, 100, 250, 20)
         self.emailsProgress = QProgressBar(self)
@@ -417,11 +409,10 @@ class Example(QWidget):
         self.center()
         self.setGeometry(self.frameGeometry())
         self.show()
-
+        print(time.time())
 
 
 if __name__ == '__main__':
-
     app = QApplication(sys.argv)
     ex = Example()
     sys.exit(app.exec_())
