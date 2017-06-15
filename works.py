@@ -1,21 +1,16 @@
 from __future__ import division
 import sys
 import os
-import time
+import tkinter
 import openpyxl
-from openpyxl.utils import get_column_letter
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from PyQt5.QtCore import *
-from PyQt5.QtCore import pyqtSlot, pyqtSignal
-from flask import Flask, render_template, request
+from PyQt5.QtCore import pyqtSignal
+from flask import Flask
 
-import tkinter as tk
-import progressbar
 from tkinter import Tk
-from tkinter import filedialog
 from tkinter.filedialog import askopenfilename
-from collections import defaultdict
+
 
 UPLOAD_FOLDER = os.getcwd()
 THUMBNAIL_SIZE = 128
@@ -68,16 +63,17 @@ class Example(QWidget):
 
     # Function to actually get the objectives update data
     def objectives(self):
-        print(time.time())
 
         # Internal helper function to format the currency values with $ and comma separation
         def formatCurrency(amt):
             if len(amt) > 3:
                 hundreds = amt[len(amt) - 3:len(amt) + 1]
                 thousands = amt[:len(amt) - 3]
-                return "$" + thousands + "," + hundreds
+                cash = "".join(["$", thousands, ",", hundreds])
+                return cash
             else:
-                return "$" + amt
+                cash = "".join(["$", amt])
+                return cash
 
         # -----------------------------------------------------------------------------------
 
@@ -156,7 +152,7 @@ class Example(QWidget):
                     code = code
                 # Reward will be in the column labeled "Rwd."
                 rewardCell = sheet.cell(row=row, column=rewardColumn)
-                reward = "$" + str(rewardCell.value)
+                reward = "".join(["$", str(rewardCell.value)])
                 # Aero status will be one cell to the left of reward
                 aeroCell = sheet.cell(row=row, column=aeroColumn)
                 aeroStatus = str(aeroCell.value)
@@ -174,7 +170,7 @@ class Example(QWidget):
                 # % of objective will be 1 cell to the right of PTD
                 percentCell = sheet.cell(row=row, column=percentColumn)
                 percent = int(percentCell.value * 100)
-                percent = str(percent) + "%"
+                percent = "".join([str(percent), "%"])
                 # Purchases to go will be 3 cells to the right of % of objective
                 PTGCell = sheet.cell(row=row, column=PTGColumn)
                 PTG = str(PTGCell.value)
@@ -279,11 +275,11 @@ class Example(QWidget):
                         fn = namePieces[0]
                         ln = namePieces[1]
                     elif len(namePieces) == 3:
-                        fn = namePieces[0] + " " + namePieces[1]
+                        fn = "".join([namePieces[0], " ", namePieces[1]])
                         ln = namePieces[2]
                     elif len(namePieces) == 4:
-                        fn = namePieces[0] + " " + namePieces[1]
-                        ln = namePieces[2] + " " + namePieces[3]
+                        fn = "".join([namePieces[0], " ", namePieces[1]])
+                        ln = "".join([namePieces[2], " ", namePieces[3]])
                     email = OSC_emails[0]
                     merge_sheet.cell(row=row, column=3).value = fn
                     merge_sheet.cell(row=row, column=4).value = ln
@@ -300,11 +296,11 @@ class Example(QWidget):
                                 fn = namePieces[0]
                                 ln = namePieces[1]
                             elif len(namePieces) == 3:
-                                fn = namePieces[0] + " " + namePieces[1]
+                                fn = "".join([namePieces[0], " ", namePieces[1]])
                                 ln = namePieces[2]
                             elif len(namePieces) == 4:
-                                fn = namePieces[0] + " " + namePieces[1]
-                                ln = namePieces[2] + " " + namePieces[3]
+                                fn = "".join([namePieces[0], " ", namePieces[1]])
+                                ln = "".join([namePieces[2], " ", namePieces[3]])
                             email = OSC_emails[curr_index]
                             merge_sheet.cell(row=newRow, column=1).value = code
                             merge_sheet.cell(row=newRow, column=2).value = merge_sheet.cell(row=row, column=2).value
@@ -330,7 +326,7 @@ class Example(QWidget):
         # Delete empty rows in MailMerge.xlsx
 
     def empty(self):
-        mergeFilePath = str(os.getcwd()) + "\MailMerge.xlsx"
+        mergeFilePath = "".join([str(os.getcwd()), "\MailMerge.xlsx"])
         merge_wb = openpyxl.load_workbook(mergeFilePath)
         merge_sheet = merge_wb.active
         for row in range(2, merge_sheet.max_row + 1):
@@ -362,8 +358,6 @@ class Example(QWidget):
         self.initUI()
 
     def initUI(self):
-
-        print(time.time())
 
         # Upload sales objectives button connected to "objectives"
         btn = QPushButton('Upload objectives file to begin mail merge process for weekly OSC objectives update', self)
@@ -409,7 +403,6 @@ class Example(QWidget):
         self.center()
         self.setGeometry(self.frameGeometry())
         self.show()
-        print(time.time())
 
 
 if __name__ == '__main__':
