@@ -11,11 +11,8 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
 
-UPLOAD_FOLDER = os.getcwd()
 THUMBNAIL_SIZE = 128
-ALLOWED_EXTENSIONS = set({'xls', 'xlsx'})
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
 class Example(QWidget):
@@ -191,7 +188,6 @@ class Example(QWidget):
                 sheet = data_wb.active
             else:
                 continue
-            merge_sheet = merge_wb.active
         merge_wb.save("MailMerge.xlsx")
         # Now prompt the user to upload the OSC Master file so we can add the emails
         self.getemailfile()
@@ -200,6 +196,8 @@ class Example(QWidget):
     def emails(self):
         Tk().withdraw()
         self.filename = askopenfilename()
+        if not self.filename:
+            self.close()
         if "OSC" not in str(self.filename):
             confirm = QMessageBox()
             confirm.setIcon(QMessageBox.Warning)
@@ -207,17 +205,14 @@ class Example(QWidget):
             confirm.setText("This doesn't look like the OSC Master workbook. Are you sure this is it?")
             confirm.exec_()
             if QMessageBox.No:
-                Tk().withdraw()
                 self.filename = askopenfilename()
-
-        if not self.filename:
-            self.close()
+                if not self.filename:
+                    self.close()
         OSC_wb = openpyxl.load_workbook(self.filename)
         # Go to the correct worksheet
         OSC_sheet = OSC_wb.active
         # Cycle through each row. If the row is an OSC, gather this data to later be stored in the array "objectives_update"
         # We'll start populating the mail merge worksheet at row 2
-        mergeRow = 2
         # Start at header row of OSC Master to determine the column each manager's email is in
         for column in range(1, OSC_sheet.max_column + 1):
             if str(OSC_sheet.cell(row=1, column=column).value) == "OSC":
@@ -262,7 +257,7 @@ class Example(QWidget):
             else:
                 continue
             # Now that you've gotten the information, copy it over to Mail Merge
-            mergeFilePath = str(os.getcwd()) + "\MailMerge.xlsx"
+            mergeFilePath = "".join([str(os.getcwd()), "\MailMerge.xlsx"])
             merge_wb = openpyxl.load_workbook(mergeFilePath)
             merge_sheet = merge_wb.active
             for row in range(2, merge_sheet.max_row + 1):
@@ -345,13 +340,13 @@ class Example(QWidget):
         finalprompt.setIcon(QMessageBox.Question)
         finalprompt.setText("Open and view completed Mail Merge file?")
         finalprompt.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
-        finalprompt.exec_()
-        if QMessageBox.Yes:
-            os.startfile(str(os.getcwd()) + "\MailMerge.xlsx")
+        if (finalprompt.exec() == QMessageBox.Yes):
+            os.startfile("".join([str(os.getcwd()), "\MailMerge.xlsx"]))
             self.close()
         else:
-            self.close()
-
+            print("User said no")
+            sys.exit(0)
+        sys.exit(0)
     def __init__(self):
         super().__init__()
         self.initUI()

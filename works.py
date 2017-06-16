@@ -1,7 +1,6 @@
 from __future__ import division
 import sys
 import os
-import tkinter
 import openpyxl
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -12,11 +11,8 @@ from tkinter import Tk
 from tkinter.filedialog import askopenfilename
 
 
-UPLOAD_FOLDER = os.getcwd()
 THUMBNAIL_SIZE = 128
-ALLOWED_EXTENSIONS = set({'xls', 'xlsx'})
 app = Flask(__name__)
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 
 class Example(QWidget):
@@ -42,12 +38,7 @@ class Example(QWidget):
     def updateFinishProgress(self, value):
         value = value * 100
         self.finishProgress.setValue(value)
-        # --- Function to prompt user to upload the file with the updated objectives, and then collect and store the relevant data in an array, which will later be prepped to mail merge. ---
-        # !! Add code in to make sure it's an accepted file type later
 
-    ##    def allowed_file(filename):
-    ##        return '.' in filename and \
-    ##               filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
 
 
     # Function to prompt user for OSC Master file
@@ -94,7 +85,6 @@ class Example(QWidget):
 
         data_wb = openpyxl.load_workbook(self.filename)
         # Go to the correct worksheet
-        sheet = data_wb.active
         # Create mail merge file
         merge_wb = openpyxl.Workbook()
         merge_sheet = merge_wb.active
@@ -132,10 +122,6 @@ class Example(QWidget):
         percentColumn = PTDColumn + 1
         PTGColumn = percentColumn + 3
 
-        # bar = progressbar.ProgressBar(maxval = sheet.max_row, widgets=[progressbar.Bar("=", "[","]")," ", progressbar.Percentage()])
-        # bar.start()
-        # Now that you've determined the location of each field, go through every row in the sheet to get actual data
-        # --------------------------------------------------------------------------------------------------------------------------
 
 
         for row in range(23, sheet.max_row + 1):
@@ -218,7 +204,6 @@ class Example(QWidget):
         OSC_sheet = OSC_wb.active
         # Cycle through each row. If the row is an OSC, gather this data to later be stored in the array "objectives_update"
         # We'll start populating the mail merge worksheet at row 2
-        mergeRow = 2
         # Start at header row of OSC Master to determine the column each manager's email is in
         for column in range(1, OSC_sheet.max_column + 1):
             if str(OSC_sheet.cell(row=1, column=column).value) == "OSC":
@@ -348,7 +333,7 @@ class Example(QWidget):
         finalprompt.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
         finalprompt.exec_()
         if QMessageBox.Yes:
-            os.startfile(str(os.getcwd()) + "\MailMerge.xlsx")
+            os.startfile("".join([str(os.getcwd()), "\MailMerge.xlsx"]))
             self.close()
         else:
             self.close()
